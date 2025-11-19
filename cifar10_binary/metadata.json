@@ -1,0 +1,17 @@
+{
+  "num_train_samples": 10000,
+  "num_test_samples": 2000,
+  "num_classes": 2,
+  "label_names": [
+    "airplane",
+    "automobile"
+  ],
+  "image_shape": [
+    3,
+    32,
+    32
+  ],
+  "data_format": "CHW (Channel, Height, Width)",
+  "pixel_range": "[0, 255] (uint8)",
+  "dtype": "uint8 for images, long for labels"
+}
