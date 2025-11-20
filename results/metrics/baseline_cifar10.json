@@ -1,0 +1,8 @@
+{
+    "dataset": "CIFAR-10 binary",
+    "epochs": 10,
+    "lr": 0.001,
+    "batch_size": 128,
+    "accuracy": 0.953,
+    "runtime_sec": 331.8500978946686
+}
