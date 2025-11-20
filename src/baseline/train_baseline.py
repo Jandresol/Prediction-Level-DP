@@ -14,7 +14,8 @@ def train_baseline_cifar10(
     epochs=10,
     lr=1e-3,
     batch_size=128,
-    save_dir="./results/metrics"
+    save_dir="./results/metrics",
+    eval=True
 ):
 
     # --------------------------
@@ -69,43 +70,49 @@ def train_baseline_cifar10(
 
         print(f"Epoch {epoch+1}/{epochs}  Loss={loss_sum/len(train_loader):.4f}")
 
-    # --------------------------
-    # Evaluation
-    # --------------------------
-    model.eval()
-    correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for X, y in test_loader:
-            X, y = X.to(device), y.to(device).view(-1, 1)
-            preds = (model(X) > 0.5).float()
-            correct += (preds == y).sum().item()
-            total += y.size(0)
-
-    accuracy = correct / total
     runtime = time.time() - start
 
     # --------------------------
-    # Save metrics
+    # Evaluation (optional)
     # --------------------------
-    metrics = {
-        "dataset": "CIFAR-10 binary",
-        "epochs": epochs,
-        "lr": lr,
-        "batch_size": batch_size,
-        "accuracy": accuracy,
-        "runtime_sec": runtime,
-    }
+    if eval:
+        model.eval()
+        correct = 0
+        total = 0
 
-    os.makedirs(save_dir, exist_ok=True)
-    json.dump(
-        metrics,
-        open(os.path.join(save_dir, "baseline_cifar10.json"), "w"),
-        indent=4,
-    )
+        with torch.no_grad():
+            for X, y in test_loader:
+                X, y = X.to(device), y.to(device).view(-1, 1)
+                preds = (model(X) > 0.5).float()
+                correct += (preds == y).sum().item()
+                total += y.size(0)
 
-    print(f"Saved baseline metrics to {save_dir}/baseline_cifar10.json")
+        accuracy = correct / total
+
+        # --------------------------
+        # Save metrics
+        # --------------------------
+        metrics = {
+            "dataset": "CIFAR-10 binary",
+            "epochs": epochs,
+            "lr": lr,
+            "batch_size": batch_size,
+            "accuracy": accuracy,
+            "runtime_sec": runtime,
+        }
+
+        os.makedirs(save_dir, exist_ok=True)
+        json.dump(
+            metrics,
+            open(os.path.join(save_dir, "baseline_cifar10.json"), "w"),
+            indent=4,
+        )
+
+        print(f"Saved baseline metrics to {save_dir}/baseline_cifar10.json")
+        return model, accuracy
+    else:
+        print(f"Training completed in {runtime:.2f} seconds (evaluation skipped)")
+        return model, None
 
 
 if __name__ == "__main__":

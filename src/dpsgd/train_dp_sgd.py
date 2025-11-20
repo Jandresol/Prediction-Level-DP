@@ -18,7 +18,8 @@ def train_dp_sgd(
     max_grad_norm=1.0,
     noise_multiplier=1.1,
     target_delta=1e-5,
-    save_dir="./results/metrics"
+    save_dir="./results/metrics",
+    eval=True
 ):
     # --------------------------
     # Process data
@@ -78,41 +79,49 @@ def train_dp_sgd(
         eps = privacy_engine.get_epsilon(delta=target_delta)
         print(f"Epoch {epoch+1}/{epochs}  Loss={loss_sum/len(train_loader):.4f}  ε={eps:.2f}")
 
-    # --------------------------
-    # Evaluation
-    # --------------------------
-    model.eval()
-    correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for X, y in test_loader:
-            X, y = X.to(device), y.to(device).view(-1, 1)
-            preds = (model(X) > 0.5).float()
-            correct += (preds == y).sum().item()
-            total += y.size(0)
-
-    accuracy = correct / total
+    runtime = time.time() - start
+    final_epsilon = privacy_engine.get_epsilon(delta=target_delta)
 
     # --------------------------
-    # Save metrics
+    # Evaluation (optional)
     # --------------------------
-    metrics = {
-        "dataset": "CIFAR-10 binary",
-        "epochs": epochs,
-        "lr": lr,
-        "batch_size": batch_size,
-        "max_grad_norm": max_grad_norm,
-        "noise_multiplier": noise_multiplier,
-        "delta": target_delta,
-        "epsilon": eps,
-        "accuracy": accuracy,
-        "runtime_sec": time.time() - start,
-    }
+    if eval:
+        model.eval()
+        correct = 0
+        total = 0
 
-    os.makedirs(save_dir, exist_ok=True)
-    json.dump(metrics, open(os.path.join(save_dir, "dpsgd_cifar10.json"), "w"), indent=4)
-    print(f"Saved metrics to {save_dir}/dpsgd_cifar10.json")
+        with torch.no_grad():
+            for X, y in test_loader:
+                X, y = X.to(device), y.to(device).view(-1, 1)
+                preds = (model(X) > 0.5).float()
+                correct += (preds == y).sum().item()
+                total += y.size(0)
+
+        accuracy = correct / total
+
+        # --------------------------
+        # Save metrics
+        # --------------------------
+        metrics = {
+            "dataset": "CIFAR-10 binary",
+            "epochs": epochs,
+            "lr": lr,
+            "batch_size": batch_size,
+            "max_grad_norm": max_grad_norm,
+            "noise_multiplier": noise_multiplier,
+            "delta": target_delta,
+            "epsilon": final_epsilon,
+            "accuracy": accuracy,
+            "runtime_sec": runtime,
+        }
+
+        os.makedirs(save_dir, exist_ok=True)
+        json.dump(metrics, open(os.path.join(save_dir, "dpsgd_cifar10.json"), "w"), indent=4)
+        print(f"Saved metrics to {save_dir}/dpsgd_cifar10.json")
+        return model, accuracy, final_epsilon
+    else:
+        print(f"Training completed in {runtime:.2f} seconds with ε={final_epsilon:.2f} (evaluation skipped)")
+        return model, None, final_epsilon
 
 
 if __name__ == "__main__":
