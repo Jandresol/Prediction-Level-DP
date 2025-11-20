@@ -9,6 +9,8 @@ from src.models.cifar_cnn import cifar_cnn
 
 
 def train_baseline_cifar10(
+    train_data,
+    test_data,
     epochs=10,
     lr=1e-3,
     batch_size=128,
@@ -16,10 +18,8 @@ def train_baseline_cifar10(
 ):
 
     # --------------------------
-    # Load data
+    # Process data
     # --------------------------
-    train_data, test_data = load_torch_dataset("cifar10_binary")
-
     X_train = train_data["images"].float() / 255.0
     y_train = train_data["labels"].float()
 
@@ -109,4 +109,5 @@ def train_baseline_cifar10(
 
 
 if __name__ == "__main__":
-    train_baseline_cifar10()
+    train_data, test_data = load_torch_dataset("cifar10_binary")
+    train_baseline_cifar10(train_data, test_data)

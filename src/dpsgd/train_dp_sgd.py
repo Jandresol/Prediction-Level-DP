@@ -10,6 +10,8 @@ from src.models.cifar_cnn import cifar_cnn
 
 
 def train_dp_sgd(
+    train_data,
+    test_data,
     epochs=10,
     lr=1e-3,
     batch_size=128,
@@ -19,10 +21,8 @@ def train_dp_sgd(
     save_dir="./results/metrics"
 ):
     # --------------------------
-    # Load the tensors (dicts)
+    # Process data
     # --------------------------
-    train_data, test_data = load_torch_dataset("cifar10_binary")
-
     X_train = train_data["images"].float() / 255.0
     y_train = train_data["labels"].float()
 
@@ -116,4 +116,5 @@ def train_dp_sgd(
 
 
 if __name__ == "__main__":
-    train_dp_sgd()
+    train_data, test_data = load_torch_dataset("cifar10_binary")
+    train_dp_sgd(train_data, test_data)
