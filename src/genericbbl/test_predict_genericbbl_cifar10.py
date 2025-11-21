@@ -12,7 +12,7 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from src.datasets.load_cifar10 import load_torch_dataset
-
+from src.genericbbl.predict_genericbbl import PrivateEverlastingPredictor
 
 def download_cifar10_if_needed():
     """
