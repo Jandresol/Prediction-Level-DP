@@ -141,13 +141,13 @@ def test_genericbbl_on_cifar10():
     # Using practical_mode=True is crucial for running this on standard hardware.
     print("\n--- Initializing PrivateEverlastingPredictor ---")
     predictor = PrivateEverlastingPredictor(
-        base_learner=DecisionTreeClassifier(max_depth=5),
-        vc_dim=20,  # Estimated VC-dim for a decision tree of this complexity
-        alpha=0.25,
-        beta=0.1,
+        base_learner=DecisionTreeClassifier(max_depth=10),
+        vc_dim=5,  # Reduced VC-dim for smaller datasets
+        alpha=0.5,
+        beta=0.3,
         practical_mode=True
     )
-    predictor.auto_set_epsilon((len(X_initial),), safety_factor=1.0)
+    predictor.auto_set_epsilon((len(X_initial),), safety_factor=1.0, force_minimum=True)
 
     # Perform initial training on the set S
     predictor.train_initial(X_initial, y_initial)
