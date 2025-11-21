@@ -54,11 +54,11 @@ def test_genericbbl_on_cifar10():
     predictor = PrivateEverlastingPredictor(
         base_learner=DecisionTreeClassifier(max_depth=5),
         vc_dim=20,  # Estimated VC-dim for a decision tree of this complexity
-        epsilon=1.0,
         alpha=0.25,
         beta=0.1,
         practical_mode=True
     )
+    predictor.auto_set_epsilon(X_initial.shape[0])
 
     # 4. Perform initial training on the set S
     predictor.train_initial(X_initial, y_initial)
