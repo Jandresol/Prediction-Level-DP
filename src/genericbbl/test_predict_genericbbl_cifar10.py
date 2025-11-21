@@ -147,7 +147,7 @@ def test_genericbbl_on_cifar10():
         beta=0.1,
         practical_mode=True
     )
-    predictor.auto_set_epsilon(X_initial.shape)
+    predictor.auto_set_epsilon((len(X_initial),), safety_factor=1.0)
 
     # Perform initial training on the set S
     predictor.train_initial(X_initial, y_initial)
