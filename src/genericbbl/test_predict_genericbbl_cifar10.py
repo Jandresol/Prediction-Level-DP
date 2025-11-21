@@ -126,11 +126,15 @@ def test_genericbbl_on_cifar10():
 
     # Normalize pixel values to [0, 1]
     X_all_np = X_all_np.astype(np.float32) / 255.0
-
+    # Feature selection: reduce dimensionality for better decision tree performance
+    from sklearn.feature_selection import SelectKBest, f_classif
+    selector = SelectKBest(f_classif, k=100)
+    X_all_np = selector.fit_transform(X_all_np, y_all_np)
+    print(f"Feature selection reduced dimensions to: {X_all_np.shape[1]}")
     print(f"Total dataset size: {len(X_all_np)} samples")
 
     # Split data into an initial labeled set (S) and a query stream
-    initial_size = 1000
+    initial_size = 2000
     X_initial, X_stream = X_all_np[:initial_size], X_all_np[initial_size:]
     y_initial, y_stream = y_all_np[:initial_size], y_all_np[initial_size:]
     print(f"Initial training set size: {len(X_initial)}")
@@ -141,10 +145,10 @@ def test_genericbbl_on_cifar10():
     # Using practical_mode=True is crucial for running this on standard hardware.
     print("\n--- Initializing PrivateEverlastingPredictor ---")
     predictor = PrivateEverlastingPredictor(
-        base_learner=DecisionTreeClassifier(max_depth=10),
+        base_learner=DecisionTreeClassifier(max_depth=3, min_samples_split=20, min_samples_leaf=10),
         vc_dim=5,  # Reduced VC-dim for smaller datasets
-        alpha=0.5,
-        beta=0.3,
+        alpha=0.1,
+        beta=0.2,
         practical_mode=True
     )
     predictor.auto_set_epsilon((len(X_initial),), safety_factor=1.0, force_minimum=True)
