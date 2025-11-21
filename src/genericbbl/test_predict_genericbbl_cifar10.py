@@ -141,20 +141,20 @@ def test_genericbbl_on_cifar10():
     # Using practical_mode=True is crucial for running this on standard hardware.
     print("\n--- Initializing PrivateEverlastingPredictor ---")
     predictor = PrivateEverlastingPredictor(
-        base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=5, batch_size=16, lr=1e-3),
+        base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=10, batch_size=16, lr=1e-3),
         vc_dim=100,  # Reduced VC-dim for smaller datasets
         alpha=0.1,
         beta=0.2,
         practical_mode=True
     )
-    predictor.auto_set_epsilon((len(X_initial),), safety_factor=1.0, force_minimum=True)
+    predictor.auto_set_epsilon((len(X_initial),), safety_factor=5.0, force_minimum=True)
 
     # Perform initial training on the set S
     predictor.train_initial(X_initial, y_initial)
 
     # Simulate the everlasting process by running rounds on chunks of the stream
     print("\n--- Starting Prediction Rounds ---")
-    chunk_size = 500  # Number of queries to process per round
+    chunk_size = 100  # Number of queries to process per round
     for i in range(0, len(X_stream), chunk_size):
         batch = X_stream[i : i + chunk_size]
         
