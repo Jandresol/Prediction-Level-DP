@@ -1,11 +1,5 @@
-numpy<2.0
-torch==2.0.1 
-torchvision==0.15.2
+numpy>=2.0
+torch>=2.0.1
+torchvision>=0.15.2
 scikit-learn
-matplotlib
-pandas
-tqdm
-opacus==1.3.0
-textattack
-transformers
-
+opacus>=1.3.0
