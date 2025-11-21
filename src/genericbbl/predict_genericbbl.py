@@ -247,6 +247,50 @@ class PrivateEverlastingPredictor:
         new_labels = best_h.predict(D_X)
         return D_X, new_labels
 
+    def auto_set_epsilon(self, X_shape, alpha=None, beta=None, safety_factor=5.0):
+        """
+        Automatically calculates the minimum epsilon required for the algorithm to 
+        function (produce utility) given the dataset size.
+        
+        :param X_shape: The shape of the training data (N, features).
+        :param safety_factor: Multiplier to ensure signal is stronger than noise (default 5x).
+        :return: A suggested epsilon value.
+        """
+        N = X_shape[0]
+        alpha = alpha if alpha else self.alpha
+        beta = beta if beta else self.beta
+        
+        # 1. Calculate samples needed per teacher (lambda)
+        # [cite_start]Based on Step 1 formula [cite: 235]
+        alpha_1 = alpha / 2.0
+        beta_1 = beta / 2.0
+        term_vc = 8 * self.vc_dim * np.log(13 / alpha_1)
+        term_beta = 4 * np.log(2 / beta_1)
+        lambda_i = (term_vc + term_beta) / alpha_1
+        
+        # 2. Calculate number of teachers (T)
+        # [cite_start]Based on Step 3a [cite: 241]
+        if lambda_i > N:
+            raise ValueError(f"Dataset size {N} is too small for even one teacher (needs {int(lambda_i)}).")
+            
+        T = int(N / lambda_i)
+        
+        # 3. Calculate minimum epsilon per step
+        # The noise scale in BetweenThresholds is roughly 6 / (epsilon * T).
+        # We need the Noise << Signal Gap (2 * alpha).
+        # Condition: (6 / (eps * T)) * safety_factor <= 2 * alpha
+        
+        required_epsilon = (3.0 * safety_factor) / (alpha * T)
+        
+        print(f"Auto-tuning Epsilon for N={N}:")
+        print(f"  - Samples per Teacher (lambda): {int(lambda_i)}")
+        print(f"  - Total Teachers (T): {T}")
+        print(f"  - Required Signal Gap: {2*alpha:.2f}")
+        print(f"  - Suggested Minimum Epsilon: {required_epsilon:.2f}")
+        
+        self.epsilon = required_epsilon
+        return required_epsilon
+
 
 class DummyClassifier:
     """Helper for degenerate cases in subsampling."""
@@ -270,7 +314,6 @@ if __name__ == "__main__":
     predictor = PrivateEverlastingPredictor(
         base_learner=DecisionTreeClassifier(max_depth=3),
         vc_dim=10,
-        epsilon=1.0,
         alpha=0.2,
         practical_mode=True # Important for running with N=500
     )
