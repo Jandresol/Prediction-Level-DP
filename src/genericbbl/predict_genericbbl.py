@@ -125,15 +125,15 @@ class PrivateEverlastingPredictor:
             F_i.append(clf)
 
         # --- Step 3c: Setup BetweenThresholds parameters ---
-        t_u = 0.5 + self.current_alpha
-        t_l = 0.5 - self.current_alpha
+        t_u = 0.5 + self.current_alpha * 0.5
+        t_l = 0.5 - self.current_alpha * 0.5
         
         # Privacy budget for BetweenThresholds
         c_i = 64 * self.current_alpha * R_i 
         
         # Instantiate privacy mechanism
         bt = BetweenThresholds(
-            epsilon=1.0, # Fixed to 1.0 in paper Step 3c
+            epsilon=2.0, # Increased for better signal-to-noise ratio
             delta=self.delta,
             t_l=t_l,
             t_u=t_u,
