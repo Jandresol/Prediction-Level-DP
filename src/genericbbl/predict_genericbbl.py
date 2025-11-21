@@ -247,7 +247,7 @@ class PrivateEverlastingPredictor:
         new_labels = best_h.predict(D_X)
         return D_X, new_labels
 
-    def auto_set_epsilon(self, X_shape, alpha=None, beta=None, safety_factor=5.0):
+    def auto_set_epsilon(self, X_shape, alpha=None, beta=None, safety_factor=5.0, force_minimum=False):
         """
         Automatically calculates the minimum epsilon required for the algorithm to 
         function (produce utility) given the dataset size.
@@ -270,8 +270,10 @@ class PrivateEverlastingPredictor:
         
         # 2. Calculate number of teachers (T)
         # [cite_start]Based on Step 3a [cite: 241]
-        if lambda_i > N:
-            raise ValueError(f"Dataset size {N} is too small for even one teacher (needs {int(lambda_i)}).")
+        if force_minimum and lambda_i > N:
+            print(f"Warning: Forcing operation with small dataset ({N} < {int(lambda_i)})")
+            T = 1
+            lambda_i = N
             
         T = int(N / lambda_i)
         
