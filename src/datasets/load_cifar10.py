@@ -205,6 +205,40 @@ def load_torch_dataset(dataset_dir):
     return train_data, test_data
 
 
+def load_all_cifar10_as_torch(data_dir, normalize=True):
+    """
+    Load all CIFAR-10 data (not filtered to binary) as PyTorch tensors.
+    
+    Args:
+        data_dir: Path to cifar-10-batches-py directory
+        normalize: Whether to normalize pixel values to [0, 1]
+        
+    Returns:
+        train_images: torch.Tensor of shape (50000, 3, 32, 32)
+        train_labels: torch.Tensor of shape (50000,)
+        test_images: torch.Tensor of shape (10000, 3, 32, 32)
+        test_labels: torch.Tensor of shape (10000,)
+        label_names: list of 10 class names
+    """
+    # Load all data using existing function
+    train_images, train_labels, test_images, test_labels, label_names = load_all_cifar10(data_dir)
+    
+    # Convert from numpy to torch tensors and from HWC to CHW format
+    train_images_tensor = torch.from_numpy(train_images)  # Shape: (50000, 32, 32, 3) HWC
+    train_images_tensor = train_images_tensor.permute(0, 3, 1, 2)  # (50000, 3, 32, 32) CHW
+    train_labels_tensor = torch.from_numpy(train_labels)
+    
+    test_images_tensor = torch.from_numpy(test_images)  # Shape: (10000, 32, 32, 3) HWC
+    test_images_tensor = test_images_tensor.permute(0, 3, 1, 2)  # (10000, 3, 32, 32) CHW
+    test_labels_tensor = torch.from_numpy(test_labels)
+    
+    if normalize:
+        train_images_tensor = train_images_tensor.float() / 255.0
+        test_images_tensor = test_images_tensor.float() / 255.0
+    
+    return train_images_tensor, train_labels_tensor, test_images_tensor, test_labels_tensor, label_names
+
+
 def save_torch_dataset(train_images, train_labels, test_images, test_labels, 
                        label_names, output_dir):
     """
@@ -398,4 +432,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
