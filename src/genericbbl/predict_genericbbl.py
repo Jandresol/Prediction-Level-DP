@@ -82,6 +82,26 @@ class PrivateEverlastingPredictor:
         self.S_current_y = np.array(y)
         print(f"Initial training complete. Dataset size: {len(X)}")
 
+    def run_round_without_privacy(self, query_stream):
+        """
+        Executes one round (i) of GenericBBL without privacy.
+
+        :param query_stream: An iterator/list of unlabeled query points x.
+        :return: List of predictions (0 or 1).
+        """
+        predictions = []
+
+        #Train base learner on current labeled set
+        self.base_learner.fit(self.S_current_X, self.S_current_y)
+        
+        for x_query in query_stream:
+            x_query = x_query.reshape(1, -1)
+            pred = self.base_learner.predict(x_query)[0]
+            predictions.append(pred)
+            
+        return predictions
+
+
     def run_round(self, query_stream):
         """
         Executes one round (i) of GenericBBL.
