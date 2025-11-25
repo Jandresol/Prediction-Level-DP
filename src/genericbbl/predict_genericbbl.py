@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 import math
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.base import clone
@@ -13,7 +14,7 @@ class PrivateEverlastingPredictor:
     Source: arXiv:2305.09579v1
     """
 
-    def __init__(self, base_learner, vc_dim, epsilon=0.9, delta=0.01, alpha=0.1, beta=0.1, practical_mode=True):
+    def __init__(self, base_learner, vc_dim, epsilon=0.9, delta=0.01, alpha=0.1, beta=0.1, practical_mode=True, device=None):
         """
         :param base_learner: A non-private sklearn-compatible classifier (Concept class C).
         :param vc_dim: The VC dimension of the concept class C.
@@ -22,6 +23,7 @@ class PrivateEverlastingPredictor:
         :param alpha: Error parameter.
         :param beta: Failure probability parameter.
         :param practical_mode: If True, scales down theoretical constants to run on standard hardware.
+        :param device: The torch device to use for computation (e.g., 'cuda:0' or 'cpu').
         """
         self.base_learner = base_learner
         self.vc_dim = vc_dim
@@ -30,6 +32,7 @@ class PrivateEverlastingPredictor:
         self.alpha = alpha
         self.beta = beta
         self.practical_mode = practical_mode
+        self.device = device if device else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         
         # Initialize round parameters
         self.current_alpha = alpha / 2.0  # alpha_1
@@ -78,9 +81,11 @@ class PrivateEverlastingPredictor:
         Step 1-2: Ingest initial labeled database S.
         """
         # In a strict implementation, we would check if len(X) meets the theoretical requirement 'n'.
-        self.S_current_X = np.array(X)
-        self.S_current_y = np.array(y)
-        print(f"Initial training complete. Dataset size: {len(X)}")
+        # Convert to tensors and move to the designated device.
+        self.S_current_X = torch.from_numpy(np.array(X)).float().to(self.device)
+        self.S_current_y = torch.from_numpy(np.array(y)).long().to(self.device)
+
+        print(f"Initial training complete. Dataset size: {self.S_current_X.shape[0]} on device: {self.device}")
 
     def run_round_without_privacy(self, query_stream):
         """
@@ -92,7 +97,7 @@ class PrivateEverlastingPredictor:
         predictions = []
 
         #Train base learner on current labeled set
-        self.base_learner.fit(self.S_current_X, self.S_current_y)
+        self.base_learner.fit(self.S_current_X.cpu().numpy(), self.S_current_y.cpu().numpy())
         
         for x_query in query_stream:
             x_query = x_query.reshape(1, -1)
@@ -117,12 +122,31 @@ class PrivateEverlastingPredictor:
         # --- Step 3a: Divide S_i into T_i disjoint databases ---
         # We assume S_current is large enough. If not, we resample (bootstrapping) 
         # to simulate the sufficient data availability assumed by the realizable setting.
-        current_size = len(self.S_current_X)
+        current_size = self.S_current_X.shape[0]
         required_size = T_i * lambda_i
         
         if current_size < required_size:
             print(f"Warning: Data size {current_size} < Required {required_size}. Resampling.")
-        indices = np.random.choice(current_size, required_size, replace=True)
+            # More even resampling: Repeat the full dataset and randomly sample the remainder.
+            num_repeats = required_size // current_size
+            num_remaining = required_size % current_size
+            
+            # Start with the repeated full dataset
+            original_indices = torch.arange(current_size, device=self.device)
+            indices = original_indices.repeat(num_repeats)
+            
+            if num_remaining > 0:
+                # Add the randomly sampled remainder
+                remaining_indices = torch.randint(0, current_size, (num_remaining,), device=self.device)
+                indices = torch.cat([indices, remaining_indices])
+            
+            # Shuffle the final combined indices to ensure randomness
+            shuffle_perm = torch.randperm(indices.shape[0], device=self.device)
+            indices = indices[shuffle_perm]
+        else:
+            # Sample without replacement
+            indices = torch.randperm(current_size, device=self.device)[:required_size]
+            
         S_pool_X = self.S_current_X[indices]
         S_pool_y = self.S_current_y[indices]
 
@@ -133,12 +157,18 @@ class PrivateEverlastingPredictor:
             end = (t + 1) * lambda_i
             
             clf = clone(self.base_learner)
+            # If the learner has a `set_device` method (like our PyTorch wrapper), use it.
+            if hasattr(clf, 'set_device'):
+                clf.set_device(self.device)
+
             # Handle single-class edge case in subsample
-            if len(np.unique(S_pool_y[start:end])) < 2:
+            sub_y = S_pool_y[start:end]
+            if len(torch.unique(sub_y)) < 2:
                  # Fallback to random prediction if subsample is pure (rare in realizable)
-                 clf = DummyClassifier(S_pool_y[start])
+                 clf = DummyClassifier(sub_y[0].item())
             else:
-                clf.fit(S_pool_X[start:end], S_pool_y[start:end])
+                # Convert back to numpy for the scikit-learn compatible fit method
+                clf.fit(S_pool_X[start:end].cpu().numpy(), sub_y.cpu().numpy())
             F_i.append(clf)
 
         # --- Step 3c: Setup BetweenThresholds parameters ---
@@ -207,11 +237,11 @@ class PrivateEverlastingPredictor:
             # 3. Use h to label D_i for the next round.
             
             S_next_X, S_next_y = self._approximate_label_boost(
-                S_X=S_pool_X, S_y=S_pool_y, 
-                D_X=np.array(D_i_X)
+                S_X=S_pool_X, S_y=S_pool_y,
+                D_X=torch.from_numpy(np.array(D_i_X)).float().to(self.device)
             )
             
-            self.S_current_X = S_next_X
+            self.S_current_X = S_next_X # Already a tensor
             self.S_current_y = S_next_y
         
         # --- Step 3g: Update parameters ---
@@ -231,38 +261,46 @@ class PrivateEverlastingPredictor:
         candidates = []
         n_candidates = 10 if self.practical_mode else 50
         for _ in range(n_candidates):
-            X_res, y_res = resample(S_X, S_y)
-            if len(np.unique(y_res)) < 2: continue
+            # Resample using torch indices
+            indices = torch.randint(0, S_X.shape[0], (S_X.shape[0],), device=self.device)
+            X_res, y_res = S_X[indices], S_y[indices]
+
+            if len(torch.unique(y_res)) < 2: continue
             h = clone(self.base_learner)
-            h.fit(X_res, y_res)
+            if hasattr(h, 'set_device'):
+                h.set_device(self.device)
+
+            h.fit(X_res.cpu().numpy(), y_res.cpu().numpy())
             candidates.append(h)
             
         # Exponential Mechanism
         # Score function u(h, S) = -error_S(h)
         # Probability ~ exp(epsilon * score / 2*sensitivity)
         # Sensitivity of error count is 1.
-        scores = []
-        for h in candidates:
-            # Negative error count
-            score = -1 * (len(S_y) - np.sum(h.predict(S_X) == S_y))
-            scores.append(score)
-            
-        scores = np.array(scores)
+        if not candidates: # Handle case where no candidates were generated
+            return D_X, torch.randint(0, 2, (D_X.shape[0],), device=self.device, dtype=torch.long)
+
+        S_X_np = S_X.cpu().numpy()
+        S_y_np = S_y.cpu().numpy()
+
+        # Calculate scores using a list comprehension then convert to tensor
+        scores = torch.tensor([
+            -1 * np.sum(h.predict(S_X_np) != S_y_np) for h in candidates
+        ], device=self.device, dtype=torch.float)
+
         # Scaled for numerical stability
         scaled_scores = (self.epsilon * scores) / 2.0
-        scaled_scores = scaled_scores - np.max(scaled_scores) 
-        probs = np.exp(scaled_scores)
-        probs /= np.sum(probs)
+        probs = torch.softmax(scaled_scores, dim=0)
         
         # Select h
-        best_h_idx = np.random.choice(len(candidates), p=probs)
+        best_h_idx = torch.multinomial(probs, 1).item()
         best_h = candidates[best_h_idx]
         
         # Relabel D and S using h
         # Step 3f says S_{i+1} comes from D'_i (the relabeled queries)
         # We return the relabeled queries as the new training set.
-        new_labels = best_h.predict(D_X)
-        return D_X, new_labels
+        new_labels_np = best_h.predict(D_X.cpu().numpy())
+        return D_X, torch.from_numpy(new_labels_np).long().to(self.device)
 
     def auto_set_epsilon(self, X_shape, alpha=None, beta=None, safety_factor=5.0, force_minimum=False):
         """

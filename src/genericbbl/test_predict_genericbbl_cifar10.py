@@ -104,6 +104,10 @@ def test_genericbbl_on_cifar10():
     """
     print("=== CIFAR-10 GenericBBL Test ===")
     
+    # --- Setup for GPU Acceleration ---
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"--- Using device: {device} ---")
+
     # Ensure we have the binary CIFAR-10 dataset
     if not ensure_cifar10_binary_dataset():
         print("\nFailed to prepare CIFAR-10 dataset. Exiting.")
@@ -117,9 +121,9 @@ def test_genericbbl_on_cifar10():
         data_dir = os.path.expanduser('~/cifar-10-batches-py')
         X_train, y_train, X_test, y_test, label_names = load_all_cifar10_as_torch(data_dir, normalize=False)
         
-        # Normalize to [0, 1] range
-        X_train = X_train.float() / 255.0
-        X_test = X_test.float() / 255.0
+        # Normalize to [0, 1] range and move to device
+        X_train = (X_train.float() / 255.0).to(device)
+        X_test = (X_test.float() / 255.0).to(device)
         
         print(f"Loaded full CIFAR-10 dataset:")
         print(f"  Training: {X_train.shape[0]} images across {len(label_names)} classes")
@@ -127,8 +131,8 @@ def test_genericbbl_on_cifar10():
         
         # For binary classification, map labels 0->0, 1->1, others->0
         # This keeps the airplane vs automobile binary task but uses more data
-        y_train_binary = torch.where(y_train < 2, y_train, torch.zeros_like(y_train))
-        y_test_binary = torch.where(y_test < 2, y_test, torch.zeros_like(y_test))
+        y_train_binary = torch.where(y_train < 2, y_train, torch.zeros_like(y_train)).to(device)
+        y_test_binary = torch.where(y_test < 2, y_test, torch.zeros_like(y_test)).to(device)
         
         # Filter to keep only airplane (0) and automobile (1) for consistency
         train_mask = y_train < 2
@@ -149,8 +153,8 @@ def test_genericbbl_on_cifar10():
         
         # Convert to numpy and flatten images for scikit-learn
         # Images are [N, 3, 32, 32], flatten to [N, 3072]
-        X_all_np = X_all.numpy().reshape(X_all.shape[0], -1)
-        y_all_np = y_all.numpy()
+        X_all_np = X_all.cpu().numpy().reshape(X_all.shape[0], -1)
+        y_all_np = y_all.cpu().numpy()
         
     except FileNotFoundError:
         print("\nError: CIFAR-10 dataset not found.")
@@ -170,11 +174,12 @@ def test_genericbbl_on_cifar10():
     # Using practical_mode=True is crucial for running this on standard hardware.
     print("\n--- Initializing PrivateEverlastingPredictor ---")
     predictor = PrivateEverlastingPredictor(
-        base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=10, batch_size=128, lr=1e-3),
+        base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=10, batch_size=128, lr=1e-3, device=device),
         vc_dim=40,  # Reduced VC-dim for smaller datasets
         alpha=0.2,
         beta=0.2,
-        practical_mode=True
+        practical_mode=True,
+        device=device
     )
     predictor.auto_set_epsilon((len(X_initial),), safety_factor=5.0, force_minimum=True)
 
