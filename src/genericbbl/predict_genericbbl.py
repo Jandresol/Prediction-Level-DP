@@ -122,12 +122,9 @@ class PrivateEverlastingPredictor:
         
         if current_size < required_size:
             print(f"Warning: Data size {current_size} < Required {required_size}. Resampling.")
-            indices = np.random.choice(current_size, required_size, replace=True)
-            S_pool_X = self.S_current_X[indices]
-            S_pool_y = self.S_current_y[indices]
-        else:
-            S_pool_X = self.S_current_X[:required_size]
-            S_pool_y = self.S_current_y[:required_size]
+        indices = np.random.choice(current_size, required_size, replace=True)
+        S_pool_X = self.S_current_X[indices]
+        S_pool_y = self.S_current_y[indices]
 
         # --- Step 3b: Train Ensemble F_i ---
         F_i = []
