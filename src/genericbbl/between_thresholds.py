@@ -4,17 +4,17 @@ class BetweenThresholds:
     """
     Algorithm BetweenThresholds implementation.
     """
-    def __init__(self, epsilon, delta, t_l, t_u, max_T_budget, practical_mode=True):
+    def __init__(self, epsilon, delta, t_l, t_u, max_T_budget, n):
         self.epsilon = epsilon
         self.t_l = t_l
         self.t_u = t_u
         self.T_budget = max_T_budget
         self.T_count = 0
-        self.practical_mode = practical_mode
+        self.n = n
         
         # Initialize noisy thresholds
         # Scale noise for implementation stability
-        scale = (2.0 / epsilon) if practical_mode else (2.0 / (epsilon * 1000))
+        scale = 2.0 / epsilon / n
         self.hat_t_l = t_l + np.random.laplace(0, scale)
         self.hat_t_u = t_u - np.random.laplace(0, scale) # Note: paper says t_u - mu
 
@@ -27,7 +27,7 @@ class BetweenThresholds:
 
         # Add noise to query value
         # Paper: Lap(6 / epsilon * n). Here n is implicitly handled by normalized q_val or scale
-        scale = (6.0 / self.epsilon) if self.practical_mode else (6.0 / (self.epsilon * 1000))
+        scale = 6.0 / self.epsilon / self.n
         noisy_q = q_val + np.random.laplace(0, scale)
 
         # Output logic
