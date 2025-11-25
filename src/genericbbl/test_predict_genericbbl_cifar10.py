@@ -171,7 +171,7 @@ def test_genericbbl_on_cifar10():
     print("\n--- Initializing PrivateEverlastingPredictor ---")
     predictor = PrivateEverlastingPredictor(
         base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=10, batch_size=16, lr=1e-3),
-        vc_dim=100,  # Reduced VC-dim for smaller datasets
+        vc_dim=40,  # Reduced VC-dim for smaller datasets
         alpha=0.2,
         beta=0.2,
         practical_mode=True
