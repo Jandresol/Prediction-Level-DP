@@ -153,12 +153,12 @@ class PrivateEverlastingPredictor:
         
         # Instantiate privacy mechanism
         bt = BetweenThresholds(
-            epsilon=2.0, # Increased for better signal-to-noise ratio
+            epsilon=self.epsilon,
             delta=self.delta,
             t_l=t_l,
             t_u=t_u,
             max_T_budget=c_i,
-            practical_mode=self.practical_mode
+            n=required_size,
         )
 
         # --- Step 3d: Query Answering Loop ---
