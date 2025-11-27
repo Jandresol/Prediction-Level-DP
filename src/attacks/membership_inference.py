@@ -28,11 +28,17 @@ def get_subset(data, indices):
     
 def lira_attack(number_of_models, training_func, target_fpr=0.1):
     """
-    Train a number of models on the dataset, each model's training set consists of a random half of the data.
+    LIRA-style membership inference attack using logistic regression.
     
-    Then for each data point, compute the average confidence of the models trained on and not the data point. Find a threshold where FPR is 0.01 and get the corresponding TPR.
+    Train a number of models on the dataset in complementary pairs, each model's training 
+    set consists of a random half of the data.
     
-    Finally draw a histograms for the TPR gathered from last step.
+    For each data point:
+    1. Extract loss-based confidence scores across all models
+    2. Train logistic regression with cross-validation to predict membership
+    3. Find threshold where FPR = target_fpr and compute corresponding TPR
+    
+    Finally draw histograms for the TPR gathered from last step.
     """
     train_data, test_data = load_torch_dataset("cifar10_binary")
     
@@ -69,31 +75,57 @@ def lira_attack(number_of_models, training_func, target_fpr=0.1):
         del model
         torch.cuda.empty_cache()
                 
-    # For each data point, use a gaussian to estimate the distribution of the confidence scores for in and out of the training set.
+    # For each data point, train logistic regression with cross-validation to predict membership
     tprs = []
-    for i in tqdm(range(num_data_points), desc="Computing TPRs"):
-        in_confs = confs[:, i][masks[:, i] == 1]
-        out_confs = confs[:, i][masks[:, i] == 0]
-        in_mean, in_std = torch.mean(in_confs), torch.std(in_confs)
-        out_mean, out_std = torch.mean(out_confs), torch.std(out_confs)
-        in_dist = torch.distributions.Normal(in_mean, in_std)
-        out_dist = torch.distributions.Normal(out_mean, out_std)
+    half_models = number_of_models // 2
+    
+    for i in tqdm(range(num_data_points), desc="Computing TPRs via logistic regression"):
+        # Get features for this data point across all models
+        features = confs[:, i].unsqueeze(1).cpu().numpy()  # (num_models, 1)
         
-        # Get density ratio of each confidence score in in-distribution to out-distribution
-        in_density = in_dist.log_prob(confs[:, i])
-        out_density = out_dist.log_prob(confs[:, i])
-        dr = torch.exp(in_density - out_density)
+        # Get membership labels (in training set or not)
+        membership = masks[:, i].cpu().numpy()  # (num_models,)
         
-        in_dr = dr[masks[:, i] == 1]
-        out_dr = dr[masks[:, i] == 0]
+        # Cross-validation: split models into two halves
+        first_half_indices = np.arange(0, half_models)
+        second_half_indices = np.arange(half_models, number_of_models)
         
-        thresh = torch.sort(out_dr, descending=True)[0][round(target_fpr * len(out_dr))]
-        tpr = torch.mean((in_dr > thresh).float()).cpu().item()
-        tprs.append(tpr)
+        # Train lr_model_1 on first half
+        lr_model_1 = LogisticRegression(max_iter=100, tol=1e-2, random_state=42)
+        lr_model_1.fit(features[first_half_indices], membership[first_half_indices])
+        
+        # Train lr_model_2 on second half
+        lr_model_2 = LogisticRegression(max_iter=100, tol=1e-2, random_state=42)
+        lr_model_2.fit(features[second_half_indices], membership[second_half_indices])
+        
+        # Get confidence scores using cross-validation
+        # First half predictions come from model trained on second half
+        confidences_first_half = lr_model_2.predict_proba(features[first_half_indices])[:, 1]
+        # Second half predictions come from model trained on first half
+        confidences_second_half = lr_model_1.predict_proba(features[second_half_indices])[:, 1]
+        
+        # Combine confidences
+        confidences = np.concatenate([confidences_first_half, confidences_second_half])
+        
+        # Split into in/out samples
+        in_confidences = confidences[membership == 1]
+        out_confidences = confidences[membership == 0]
+        
+        # Find threshold where FPR = target_fpr
+        if len(out_confidences) > 0:
+            sorted_out = np.sort(out_confidences)[::-1]  # Descending order
+            thresh_idx = min(int(target_fpr * len(out_confidences)), len(sorted_out) - 1)
+            threshold = sorted_out[thresh_idx]
+            
+            # Compute TPR at this threshold
+            tpr = np.mean(in_confidences > threshold) if len(in_confidences) > 0 else 0.0
+            tprs.append(tpr)
+        else:
+            tprs.append(0.0)
         
         
     # Save the TPRs to a json file
-    with open(f"results/{training_func.__name__}_tprs_{number_of_models}models_fpr{target_fpr:.2f}.json", "w") as f:
+    with open(f"results/{training_func.__name__}_lira_tprs_{number_of_models}models_fpr{target_fpr:.2f}.json", "w") as f:
         json.dump(tprs, f)
         
         
@@ -106,7 +138,7 @@ def lira_attack(number_of_models, training_func, target_fpr=0.1):
     plt.xlim(0, len(tprs))
     
     # Use the function name to save the figure
-    plt.savefig(f"results/{training_func.__name__}_tprs_{number_of_models}models_fpr{target_fpr:.2f}.png")
+    plt.savefig(f"results/{training_func.__name__}_lira_tprs_{number_of_models}models_fpr{target_fpr:.2f}.png")
     plt.close()
         
 

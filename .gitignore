@@ -15,3 +15,4 @@ venv/
 
 results/*.json
 results/*.png
+results/canary_attacks
