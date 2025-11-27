@@ -3,6 +3,6 @@
     "epochs": 10,
     "lr": 0.001,
     "batch_size": 128,
-    "accuracy": 0.953,
-    "runtime_sec": 331.8500978946686
+    "accuracy": 0.9525,
+    "runtime_sec": 2.532722234725952
 }

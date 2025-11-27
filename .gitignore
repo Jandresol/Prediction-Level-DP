@@ -12,3 +12,6 @@ venv/
 # IDEs
 .vscode/
 .idea/
+
+results/*.json
+results/*.png

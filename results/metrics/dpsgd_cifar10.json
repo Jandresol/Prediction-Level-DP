@@ -6,7 +6,7 @@
     "max_grad_norm": 1.0,
     "noise_multiplier": 1.1,
     "delta": 1e-05,
-    "epsilon": 2.631832910006812,
-    "accuracy": 0.8615,
-    "runtime_sec": 1149.6914780139923
+    "epsilon": 2.631832909848938,
+    "accuracy": 0.843,
+    "runtime_sec": 5.144260406494141
 }
