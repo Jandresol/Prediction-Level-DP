@@ -12,3 +12,7 @@ venv/
 # IDEs
 .vscode/
 .idea/
+
+results/*.json
+results/*.png
+results/canary_attacks

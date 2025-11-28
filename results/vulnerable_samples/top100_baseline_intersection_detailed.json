@@ -1,0 +1,622 @@
+{
+  "description": "Top 100 most vulnerable samples from baseline experiments intersection (sorted by worst rank - consistent in both)",
+  "baseline_experiments": [
+    "train_baseline_cifar10_tprs_1000models_fpr0.01",
+    "train_baseline_cifar10_label_only_tprs_1000models_fpr0.01"
+  ],
+  "intersection_size": 191,
+  "top_n": 100,
+  "samples": [
+    {
+      "sample_id": 4507,
+      "rank1": 6,
+      "rank2": 6,
+      "worst_rank": 6
+    },
+    {
+      "sample_id": 3870,
+      "rank1": 7,
+      "rank2": 0,
+      "worst_rank": 7
+    },
+    {
+      "sample_id": 3680,
+      "rank1": 9,
+      "rank2": 8,
+      "worst_rank": 9
+    },
+    {
+      "sample_id": 3237,
+      "rank1": 1,
+      "rank2": 10,
+      "worst_rank": 10
+    },
+    {
+      "sample_id": 5336,
+      "rank1": 15,
+      "rank2": 15,
+      "worst_rank": 15
+    },
+    {
+      "sample_id": 2835,
+      "rank1": 8,
+      "rank2": 16,
+      "worst_rank": 16
+    },
+    {
+      "sample_id": 315,
+      "rank1": 16,
+      "rank2": 5,
+      "worst_rank": 16
+    },
+    {
+      "sample_id": 9329,
+      "rank1": 17,
+      "rank2": 12,
+      "worst_rank": 17
+    },
+    {
+      "sample_id": 8399,
+      "rank1": 3,
+      "rank2": 17,
+      "worst_rank": 17
+    },
+    {
+      "sample_id": 9700,
+      "rank1": 18,
+      "rank2": 13,
+      "worst_rank": 18
+    },
+    {
+      "sample_id": 4362,
+      "rank1": 19,
+      "rank2": 2,
+      "worst_rank": 19
+    },
+    {
+      "sample_id": 6235,
+      "rank1": 21,
+      "rank2": 20,
+      "worst_rank": 21
+    },
+    {
+      "sample_id": 7382,
+      "rank1": 11,
+      "rank2": 24,
+      "worst_rank": 24
+    },
+    {
+      "sample_id": 4432,
+      "rank1": 2,
+      "rank2": 26,
+      "worst_rank": 26
+    },
+    {
+      "sample_id": 1415,
+      "rank1": 27,
+      "rank2": 21,
+      "worst_rank": 27
+    },
+    {
+      "sample_id": 8092,
+      "rank1": 28,
+      "rank2": 14,
+      "worst_rank": 28
+    },
+    {
+      "sample_id": 6989,
+      "rank1": 29,
+      "rank2": 11,
+      "worst_rank": 29
+    },
+    {
+      "sample_id": 9583,
+      "rank1": 4,
+      "rank2": 30,
+      "worst_rank": 30
+    },
+    {
+      "sample_id": 5533,
+      "rank1": 30,
+      "rank2": 4,
+      "worst_rank": 30
+    },
+    {
+      "sample_id": 8285,
+      "rank1": 14,
+      "rank2": 35,
+      "worst_rank": 35
+    },
+    {
+      "sample_id": 9071,
+      "rank1": 35,
+      "rank2": 19,
+      "worst_rank": 35
+    },
+    {
+      "sample_id": 6327,
+      "rank1": 26,
+      "rank2": 36,
+      "worst_rank": 36
+    },
+    {
+      "sample_id": 6676,
+      "rank1": 31,
+      "rank2": 38,
+      "worst_rank": 38
+    },
+    {
+      "sample_id": 2296,
+      "rank1": 38,
+      "rank2": 31,
+      "worst_rank": 38
+    },
+    {
+      "sample_id": 5330,
+      "rank1": 40,
+      "rank2": 1,
+      "worst_rank": 40
+    },
+    {
+      "sample_id": 4966,
+      "rank1": 0,
+      "rank2": 40,
+      "worst_rank": 40
+    },
+    {
+      "sample_id": 31,
+      "rank1": 41,
+      "rank2": 45,
+      "worst_rank": 45
+    },
+    {
+      "sample_id": 7558,
+      "rank1": 45,
+      "rank2": 32,
+      "worst_rank": 45
+    },
+    {
+      "sample_id": 2538,
+      "rank1": 46,
+      "rank2": 22,
+      "worst_rank": 46
+    },
+    {
+      "sample_id": 8703,
+      "rank1": 13,
+      "rank2": 46,
+      "worst_rank": 46
+    },
+    {
+      "sample_id": 8460,
+      "rank1": 43,
+      "rank2": 47,
+      "worst_rank": 47
+    },
+    {
+      "sample_id": 657,
+      "rank1": 23,
+      "rank2": 48,
+      "worst_rank": 48
+    },
+    {
+      "sample_id": 2177,
+      "rank1": 12,
+      "rank2": 49,
+      "worst_rank": 49
+    },
+    {
+      "sample_id": 5113,
+      "rank1": 25,
+      "rank2": 51,
+      "worst_rank": 51
+    },
+    {
+      "sample_id": 3182,
+      "rank1": 37,
+      "rank2": 54,
+      "worst_rank": 54
+    },
+    {
+      "sample_id": 2334,
+      "rank1": 22,
+      "rank2": 55,
+      "worst_rank": 55
+    },
+    {
+      "sample_id": 1975,
+      "rank1": 56,
+      "rank2": 41,
+      "worst_rank": 56
+    },
+    {
+      "sample_id": 5170,
+      "rank1": 58,
+      "rank2": 53,
+      "worst_rank": 58
+    },
+    {
+      "sample_id": 4577,
+      "rank1": 60,
+      "rank2": 29,
+      "worst_rank": 60
+    },
+    {
+      "sample_id": 5927,
+      "rank1": 61,
+      "rank2": 44,
+      "worst_rank": 61
+    },
+    {
+      "sample_id": 4248,
+      "rank1": 42,
+      "rank2": 62,
+      "worst_rank": 62
+    },
+    {
+      "sample_id": 7515,
+      "rank1": 62,
+      "rank2": 59,
+      "worst_rank": 62
+    },
+    {
+      "sample_id": 89,
+      "rank1": 63,
+      "rank2": 18,
+      "worst_rank": 63
+    },
+    {
+      "sample_id": 1853,
+      "rank1": 34,
+      "rank2": 63,
+      "worst_rank": 63
+    },
+    {
+      "sample_id": 1186,
+      "rank1": 53,
+      "rank2": 64,
+      "worst_rank": 64
+    },
+    {
+      "sample_id": 4177,
+      "rank1": 66,
+      "rank2": 37,
+      "worst_rank": 66
+    },
+    {
+      "sample_id": 5833,
+      "rank1": 55,
+      "rank2": 67,
+      "worst_rank": 67
+    },
+    {
+      "sample_id": 4451,
+      "rank1": 70,
+      "rank2": 28,
+      "worst_rank": 70
+    },
+    {
+      "sample_id": 3863,
+      "rank1": 24,
+      "rank2": 71,
+      "worst_rank": 71
+    },
+    {
+      "sample_id": 5089,
+      "rank1": 72,
+      "rank2": 56,
+      "worst_rank": 72
+    },
+    {
+      "sample_id": 9703,
+      "rank1": 74,
+      "rank2": 73,
+      "worst_rank": 74
+    },
+    {
+      "sample_id": 7341,
+      "rank1": 39,
+      "rank2": 75,
+      "worst_rank": 75
+    },
+    {
+      "sample_id": 3729,
+      "rank1": 67,
+      "rank2": 80,
+      "worst_rank": 80
+    },
+    {
+      "sample_id": 7901,
+      "rank1": 81,
+      "rank2": 25,
+      "worst_rank": 81
+    },
+    {
+      "sample_id": 2661,
+      "rank1": 20,
+      "rank2": 82,
+      "worst_rank": 82
+    },
+    {
+      "sample_id": 1069,
+      "rank1": 86,
+      "rank2": 23,
+      "worst_rank": 86
+    },
+    {
+      "sample_id": 6154,
+      "rank1": 88,
+      "rank2": 33,
+      "worst_rank": 88
+    },
+    {
+      "sample_id": 2321,
+      "rank1": 5,
+      "rank2": 92,
+      "worst_rank": 92
+    },
+    {
+      "sample_id": 9626,
+      "rank1": 94,
+      "rank2": 90,
+      "worst_rank": 94
+    },
+    {
+      "sample_id": 5796,
+      "rank1": 54,
+      "rank2": 95,
+      "worst_rank": 95
+    },
+    {
+      "sample_id": 6852,
+      "rank1": 57,
+      "rank2": 96,
+      "worst_rank": 96
+    },
+    {
+      "sample_id": 1893,
+      "rank1": 96,
+      "rank2": 9,
+      "worst_rank": 96
+    },
+    {
+      "sample_id": 6275,
+      "rank1": 33,
+      "rank2": 98,
+      "worst_rank": 98
+    },
+    {
+      "sample_id": 6024,
+      "rank1": 98,
+      "rank2": 3,
+      "worst_rank": 98
+    },
+    {
+      "sample_id": 4725,
+      "rank1": 99,
+      "rank2": 61,
+      "worst_rank": 99
+    },
+    {
+      "sample_id": 935,
+      "rank1": 77,
+      "rank2": 99,
+      "worst_rank": 99
+    },
+    {
+      "sample_id": 6816,
+      "rank1": 104,
+      "rank2": 86,
+      "worst_rank": 104
+    },
+    {
+      "sample_id": 3407,
+      "rank1": 49,
+      "rank2": 106,
+      "worst_rank": 106
+    },
+    {
+      "sample_id": 8063,
+      "rank1": 106,
+      "rank2": 89,
+      "worst_rank": 106
+    },
+    {
+      "sample_id": 7665,
+      "rank1": 109,
+      "rank2": 52,
+      "worst_rank": 109
+    },
+    {
+      "sample_id": 3745,
+      "rank1": 112,
+      "rank2": 104,
+      "worst_rank": 112
+    },
+    {
+      "sample_id": 8152,
+      "rank1": 48,
+      "rank2": 112,
+      "worst_rank": 112
+    },
+    {
+      "sample_id": 3582,
+      "rank1": 103,
+      "rank2": 113,
+      "worst_rank": 113
+    },
+    {
+      "sample_id": 319,
+      "rank1": 114,
+      "rank2": 83,
+      "worst_rank": 114
+    },
+    {
+      "sample_id": 3902,
+      "rank1": 69,
+      "rank2": 117,
+      "worst_rank": 117
+    },
+    {
+      "sample_id": 9375,
+      "rank1": 10,
+      "rank2": 118,
+      "worst_rank": 118
+    },
+    {
+      "sample_id": 6281,
+      "rank1": 91,
+      "rank2": 120,
+      "worst_rank": 120
+    },
+    {
+      "sample_id": 3915,
+      "rank1": 32,
+      "rank2": 121,
+      "worst_rank": 121
+    },
+    {
+      "sample_id": 586,
+      "rank1": 73,
+      "rank2": 122,
+      "worst_rank": 122
+    },
+    {
+      "sample_id": 7950,
+      "rank1": 124,
+      "rank2": 42,
+      "worst_rank": 124
+    },
+    {
+      "sample_id": 3423,
+      "rank1": 131,
+      "rank2": 111,
+      "worst_rank": 131
+    },
+    {
+      "sample_id": 8915,
+      "rank1": 50,
+      "rank2": 132,
+      "worst_rank": 132
+    },
+    {
+      "sample_id": 3807,
+      "rank1": 111,
+      "rank2": 134,
+      "worst_rank": 134
+    },
+    {
+      "sample_id": 7925,
+      "rank1": 135,
+      "rank2": 123,
+      "worst_rank": 135
+    },
+    {
+      "sample_id": 8495,
+      "rank1": 143,
+      "rank2": 130,
+      "worst_rank": 143
+    },
+    {
+      "sample_id": 7527,
+      "rank1": 115,
+      "rank2": 143,
+      "worst_rank": 143
+    },
+    {
+      "sample_id": 92,
+      "rank1": 127,
+      "rank2": 145,
+      "worst_rank": 145
+    },
+    {
+      "sample_id": 5864,
+      "rank1": 145,
+      "rank2": 7,
+      "worst_rank": 145
+    },
+    {
+      "sample_id": 8730,
+      "rank1": 68,
+      "rank2": 148,
+      "worst_rank": 148
+    },
+    {
+      "sample_id": 5731,
+      "rank1": 100,
+      "rank2": 149,
+      "worst_rank": 149
+    },
+    {
+      "sample_id": 8406,
+      "rank1": 52,
+      "rank2": 150,
+      "worst_rank": 150
+    },
+    {
+      "sample_id": 8916,
+      "rank1": 153,
+      "rank2": 108,
+      "worst_rank": 153
+    },
+    {
+      "sample_id": 5462,
+      "rank1": 82,
+      "rank2": 159,
+      "worst_rank": 159
+    },
+    {
+      "sample_id": 5368,
+      "rank1": 120,
+      "rank2": 161,
+      "worst_rank": 161
+    },
+    {
+      "sample_id": 5542,
+      "rank1": 130,
+      "rank2": 163,
+      "worst_rank": 163
+    },
+    {
+      "sample_id": 4280,
+      "rank1": 165,
+      "rank2": 115,
+      "worst_rank": 165
+    },
+    {
+      "sample_id": 5834,
+      "rank1": 117,
+      "rank2": 165,
+      "worst_rank": 165
+    },
+    {
+      "sample_id": 8417,
+      "rank1": 156,
+      "rank2": 166,
+      "worst_rank": 166
+    },
+    {
+      "sample_id": 8988,
+      "rank1": 167,
+      "rank2": 72,
+      "worst_rank": 167
+    },
+    {
+      "sample_id": 9264,
+      "rank1": 107,
+      "rank2": 169,
+      "worst_rank": 169
+    }
+  ],
+  "statistics": {
+    "worst_rank_range": [
+      6,
+      169
+    ],
+    "mean_worst_rank": 80.62,
+    "median_worst_rank": 73.0,
+    "worse_in_exp1": 46,
+    "worse_in_exp2": 52,
+    "tied": 2
+  }
+}
