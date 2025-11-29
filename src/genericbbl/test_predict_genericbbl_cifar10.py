@@ -176,10 +176,11 @@ def test_genericbbl_on_cifar10():
     predictor = PrivateEverlastingPredictor(
         base_learner=PyTorchCNNWrapper(model_class=cifar_cnn, epochs=10, batch_size=128, lr=1e-3, device=device),
         vc_dim=40,  # Reduced VC-dim for smaller datasets
+        delta=1e-5,
         alpha=0.2,
         beta=0.2,
         practical_mode=True,
-        device=device
+        device=device,
     )
     predictor.auto_set_epsilon((len(X_initial),), safety_factor=5.0, force_minimum=True)
 
