@@ -14,7 +14,8 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from src.datasets.load_cifar10 import load_torch_dataset
-from src.genericbbl.predict_genericbbl import PrivateEverlastingPredictor
+from src.genericbbl.predict_genericbbl import PrivateEverlastingPredictor, train_genericbbl
+import json
 
 from src.datasets.load_cifar10 import load_all_cifar10_as_torch
 
@@ -95,6 +96,76 @@ def ensure_cifar10_binary_dataset():
     except Exception as e:
         print(f"Error running dataset processing: {e}")
         return False
+
+
+def test_train_genericbbl():
+    """
+    Test the train_genericbbl function on the binary CIFAR-10 dataset.
+    """
+    print("\n=== Test for train_genericbbl on CIFAR-10 ===")
+    
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(f"--- Using device: {device} ---")
+
+    if not ensure_cifar10_binary_dataset():
+        print("\nFailed to prepare CIFAR-10 dataset. Exiting.")
+        return
+
+    try:
+        train_data, test_data = load_torch_dataset("cifar10_binary")
+        
+        train_size = 10000
+        test_size = 2000
+        
+        small_train_data = {
+            "images": train_data["images"][:train_size],
+            "labels": train_data["labels"][:train_size]
+        }
+        small_test_data = {
+            "images": test_data["images"][:test_size],
+            "labels": test_data["labels"][:test_size]
+        }
+
+    except Exception as e:
+        print(f"Error loading binary dataset: {e}")
+        return
+
+    save_dir = "/tmp/gemini_test_metrics"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    predictor, accuracy, epsilon = train_genericbbl(
+        train_data=small_train_data,
+        test_data=small_test_data,
+        epochs=1,
+        batch_size=64,
+        epsilon=75.0,
+        target_delta=1e-5,
+        save_dir=save_dir,
+        eval=True
+    )
+    
+    print("\n--- Test Assertions ---")
+    
+    assert isinstance(accuracy, float), "Accuracy should be a float."
+    assert 0.0 <= accuracy <= 1.0, f"Accuracy {accuracy} is not between 0 and 1."
+    print(f"Final accuracy: {accuracy:.4f}")
+    assert accuracy > 0.4, f"Accuracy {accuracy:.4f} is too low, expected > 0.4 for this simple task."
+
+    assert epsilon == 100.0, "Epsilon returned should match the input epsilon."
+    
+    metrics_file = os.path.join(save_dir, "genericbbl_cifar10.json")
+    assert os.path.exists(metrics_file), f"Metrics file was not created at {metrics_file}"
+    
+    with open(metrics_file, 'r') as f:
+        metrics = json.load(f)
+    
+    assert metrics["accuracy"] == accuracy, "Accuracy in metrics file does not match."
+    assert metrics["epsilon_bbl"] == epsilon, "Epsilon in metrics file does not match."
+    assert metrics["num_samples_evaluated"] <= test_size, "More samples evaluated than available."
+
+    print("All assertions passed!")
+    print(f"Metrics file saved at {metrics_file}")
 
 
 def test_genericbbl_on_cifar10():
@@ -205,4 +276,5 @@ def test_genericbbl_on_cifar10():
 
 
 if __name__ == "__main__":
-    test_genericbbl_on_cifar10()
+    # test_genericbbl_on_cifar10()
+    test_train_genericbbl()

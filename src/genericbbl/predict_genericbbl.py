@@ -7,6 +7,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.utils import resample
 
 from .between_thresholds import BetweenThresholds
+import concurrent.futures
+import os
+import multiprocessing
 
 class PrivateEverlastingPredictor:
     """
@@ -104,6 +107,190 @@ class PrivateEverlastingPredictor:
             pred = self.base_learner.predict(x_query)[0]
             predictions.append(pred)
             
+        return predictions
+    
+    def prepare_for_simulation(self):
+        """Prepares internal state for simulation mode.
+        
+        The teacher models will be trained in advance.
+        """
+        lambda_i, T_i, R_i = self._calculate_params(self.current_alpha, self.current_beta)
+        
+        print(f"--- Preparing for Simulation (Round {self.round_counter}) ---")
+        print(f"Params: lambda={lambda_i}, T={T_i}, Max Queries R={R_i}")
+
+        # Store for do_simulation
+        self.T_i = T_i
+        self.R_i = R_i
+        self.lambda_i = lambda_i
+
+        # --- Step 3a: Divide S_i into T_i disjoint databases ---
+        current_size = self.S_current_X.shape[0]
+        required_size = self.T_i * self.lambda_i
+        
+        if current_size < required_size:
+            print(f"Warning: Data size {current_size} < Required {required_size}. Resampling.")
+            # More even resampling: Repeat the full dataset and randomly sample the remainder.
+            num_repeats = required_size // current_size
+            num_remaining = required_size % current_size
+            
+            # Start with the repeated full dataset
+            original_indices = torch.arange(current_size, device=self.device)
+            indices = original_indices.repeat(num_repeats)
+            
+            if num_remaining > 0:
+                # Add the randomly sampled remainder
+                remaining_indices = torch.randint(0, current_size, (num_remaining,), device=self.device)
+                indices = torch.cat([indices, remaining_indices])
+            
+            # Shuffle the final combined indices to ensure randomness
+            shuffle_perm = torch.randperm(indices.shape[0], device=self.device)
+            indices = indices[shuffle_perm]
+        else:
+            # Sample without replacement
+            indices = torch.randperm(current_size, device=self.device)[:required_size]
+            
+        S_pool_X = self.S_current_X[indices]
+        S_pool_y = self.S_current_y[indices]
+
+        # Store for later use in label boost
+        self.S_pool_X = S_pool_X
+        self.S_pool_y = S_pool_y
+
+        # --- Step 3b: Train Ensemble F_i ---
+        print(f"Training {self.T_i} teacher models...")
+
+        # Parallel training is safer and more effective on CPU.
+        # GPU training in parallel processes can be complex to manage (CUDA contexts, memory).
+        if self.device.type == 'cpu':
+            tasks = []
+            for t in range(self.T_i):
+                start, end = t * self.lambda_i, (t + 1) * self.lambda_i
+                X_subset_np = S_pool_X[start:end].cpu().numpy()
+                y_subset_np = S_pool_y[start:end].cpu().numpy()
+                # Pass device as a string for pickling
+                tasks.append((self.base_learner, X_subset_np, y_subset_np, 'cpu'))
+            
+            # Use as many workers as there are CPUs, up to the number of tasks
+            num_workers = min(os.cpu_count(), len(tasks))
+            print(f"Using ProcessPoolExecutor with {num_workers} workers on CPU.")
+            
+            with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
+                # Using map to preserve order
+                self.F_i = list(executor.map(_train_single_model_parallel, tasks))
+
+        else: # Fallback to sequential training for GPU to avoid CUDA issues
+            print("Device is CUDA, training models sequentially.")
+            self.F_i = []
+            for t in range(self.T_i):
+                start, end = t * self.lambda_i, (t + 1) * self.lambda_i
+                
+                clf = clone(self.base_learner)
+                # The wrapper will use the device it was initialized with
+                
+                sub_y = S_pool_y[start:end]
+                if len(torch.unique(sub_y)) < 2:
+                     clf = DummyClassifier(sub_y[0].item())
+                else:
+                    clf.fit(S_pool_X[start:end].cpu().numpy(), sub_y.cpu().numpy())
+                self.F_i.append(clf)
+        
+        print("Teacher models trained.")
+
+        # --- Step 3c: Setup BetweenThresholds parameters ---
+        self.t_u = 0.5 + self.current_alpha * 0.5
+        self.t_l = 0.5 - self.current_alpha * 0.5
+        
+        # Privacy budget for BetweenThresholds
+        c_i = 64 * self.current_alpha * self.R_i 
+        
+        # Instantiate privacy mechanism
+        self.bt = BetweenThresholds(
+            epsilon=self.epsilon,
+            delta=self.delta,
+            t_l=self.t_l,
+            t_u=self.t_u,
+            max_T_budget=c_i,
+            n=required_size,
+            device=self.device,
+        )
+
+        # Initialize for do_simulation
+        self.D_i_X = []
+        self.D_i_y = []
+        self.processed_count = 0
+
+    def do_simulation(self, batch):
+        """
+        Performs one batch of simulation using pre-trained teachers.
+        The prediction part is parallelized over the batch.
+
+        :param batch: A batch of unlabeled query points x.
+        :return: List of predictions (0 or 1) for the batch.
+        """
+        if not hasattr(self, 'F_i') or not self.F_i:
+            raise RuntimeError("`prepare_for_simulation` must be called before `do_simulation`.")
+
+        # Convert to numpy array if it's a list
+        if isinstance(batch, list):
+            if not batch:
+                return []
+            batch = np.array(batch)
+        elif len(batch) == 0:
+            return []
+
+        # The expensive part is getting predictions from T_i models.
+        # We can parallelize this part.
+        tasks = [(clf, batch) for clf in self.F_i]
+        
+        all_preds = []
+        if self.device.type == 'cuda':
+            # For CUDA, use ThreadPoolExecutor to avoid context issues.
+            # The GIL is released during GPU computation.
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                all_preds = list(executor.map(_predict_single_model_parallel, tasks))
+        else:  # cpu
+            # For CPU, use ProcessPoolExecutor for true parallelism.
+            num_workers = min(os.cpu_count(), len(tasks))
+            # Using 'spawn' context is safer for libraries that use CUDA internally,
+            # even when we are targeting CPU execution.
+            context = multiprocessing.get_context("spawn") if "spawn" in multiprocessing.get_all_start_methods() else None
+            with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers, mp_context=context) as executor:
+                all_preds = list(executor.map(_predict_single_model_parallel, tasks))
+
+        all_preds_np = np.array(all_preds)  # Shape: (T_i, batch_size)
+
+        # Calculate normalized votes for each query in the batch
+        normalized_votes = np.sum(all_preds_np, axis=0) / self.T_i  # Shape: (batch_size,)
+
+        # Respect the round's query limit (R_i)
+        queries_left_in_round = self.R_i - self.processed_count
+        if queries_left_in_round <= 0:
+            print("Max queries for this round already reached.")
+            return []
+        
+        # Only process up to the number of queries left
+        votes_to_process = normalized_votes[:queries_left_in_round]
+        batch_to_process = batch[:queries_left_in_round]
+
+        # Process the allowed batch of votes at once.
+        # Using stateless=True as per user request for parallel processing,
+        # which assumes no T_budget exhaustion during the batch.
+        outcomes = self.bt.query_batch(votes_to_process, stateless=True)
+        
+        # Vectorized processing of outcomes
+        # pred = 0 if outcome is L (0), 1 if T (1) or R (2)
+        predictions_tensor = (outcomes > BetweenThresholds.OUTCOME_L).int()
+        
+        # Convert to list for return value and state update
+        predictions = predictions_tensor.cpu().tolist()
+        
+        # Update state in batch
+        # self.D_i_X is a list of numpy arrays, so we convert the batch slice to a list
+        self.D_i_X.extend(list(batch_to_process))
+        self.D_i_y.extend(predictions)
+        self.processed_count += len(predictions)
+                
         return predictions
 
 
@@ -348,6 +535,40 @@ class PrivateEverlastingPredictor:
         self.epsilon = required_epsilon
         return required_epsilon
 
+    def finalize_round(self):
+        """
+        Finalizes the current round after all simulations are done.
+        This includes running LabelBoost and preparing for the next round.
+        """
+        if not hasattr(self, 'D_i_X') or not self.D_i_X:
+            print("No queries were processed in this round. Nothing to finalize.")
+        else:
+            print("Finalizing round: relabeling queries with LabelBoost for next round's training set.")
+            S_next_X, S_next_y = self._approximate_label_boost(
+                S_X=self.S_pool_X, S_y=self.S_pool_y,
+                D_X=torch.from_numpy(np.array(self.D_i_X)).float().to(self.device)
+            )
+            self.S_current_X = S_next_X
+            self.S_current_y = S_next_y
+        
+        self.current_alpha /= 2.0
+        self.current_beta /= 2.0
+        self.round_counter += 1
+
+        # Clean up state from the completed round
+        if hasattr(self, 'F_i'): del self.F_i
+        if hasattr(self, 'bt'): del self.bt
+        if hasattr(self, 'D_i_X'): del self.D_i_X
+        if hasattr(self, 'D_i_y'): del self.D_i_y
+        if hasattr(self, 'processed_count'): del self.processed_count
+        if hasattr(self, 'T_i'): del self.T_i
+        if hasattr(self, 'R_i'): del self.R_i
+        if hasattr(self, 'lambda_i'): del self.lambda_i
+        if hasattr(self, 'S_pool_X'): del self.S_pool_X
+        if hasattr(self, 'S_pool_y'): del self.S_pool_y
+    
+        print(f"--- Round {self.round_counter-1} finalized. Ready for round {self.round_counter}. ---")
+
 
 class DummyClassifier:
     """Helper for degenerate cases in subsampling."""
@@ -355,3 +576,194 @@ class DummyClassifier:
         self.label = label
     def predict(self, X):
         return np.full(len(X), self.label)
+
+
+def _train_single_model_parallel(args):
+    """Helper for parallel training. Can be pickled."""
+    base_learner_template, X_train, y_train, device_str = args
+    
+    # Create a new learner instance for this process
+    learner = clone(base_learner_template)
+    
+    # Assign the device for this worker.
+    # This assumes the learner has a public `device` attribute that `fit` will use.
+    # PyTorchCNNWrapper does have this.
+    learner.device = device_str
+            
+    # Handle single-class edge case in subsample
+    # Need to convert from numpy back to tensor to use torch.unique
+    if len(np.unique(y_train)) < 2:
+         return DummyClassifier(y_train[0]) # .item() is not needed for numpy scalar
+    else:
+        learner.fit(X_train, y_train)
+    return learner
+
+
+def _predict_single_model_parallel(args):
+    """Helper for parallel prediction."""
+    clf, batch = args
+    return clf.predict(batch)
+
+
+def train_genericbbl(
+    train_data,
+    test_data,
+    batch_size=128,
+    epochs=10,
+    lr=1e-3,
+    epsilon=75,
+    target_delta=1e-5,
+    save_dir="./results/metrics",
+    eval=True
+):
+    """
+    Initializes and evaluates the GenericBBL private everlasting predictor.
+
+    This function sets up the PrivateEverlastingPredictor with a given base learner,
+    trains it on an initial dataset, and then evaluates its performance on a stream
+    of test data. The evaluation proceeds in rounds, as defined by the GenericBBL
+    algorithm, until the entire test set is processed or the privacy budget is
+    exhausted.
+
+    The performance metrics, including accuracy and runtime, are saved to a JSON file.
+
+    Args:
+        train_data (dict): A dictionary containing the initial training data 
+                           (e.g., {'images': tensor, 'labels': tensor}).
+        test_data (dict): A dictionary containing the test data for evaluation.
+        batch_size (int, optional): The batch size for the base learner's training
+                                    and for processing the evaluation stream. Defaults to 128.
+        epochs (int, optional): The number of training epochs for each base learner (teacher model).
+                                Defaults to 10.
+        lr (float, optional): The learning rate for the base learner's optimizer.
+                              Defaults to 1e-3.
+        epsilon (float, optional): The total privacy budget ε for the GenericBBL predictor.
+                                   Defaults to 75.
+        noise_multiplier (float, optional): Included for API consistency with other training
+                                            functions. Not directly used by GenericBBL.
+        max_grad_norm (float, optional): Included for API consistency. Not directly used.
+        target_delta (float, optional): The privacy parameter δ for the GenericBBL predictor.
+                                        Defaults to 1e-5.
+        save_dir (str, optional): The directory to save the final metrics JSON file.
+                                  Defaults to "./results/metrics".
+        eval (bool, optional): If False, skips the evaluation phase. Defaults to True.
+
+    Returns:
+        tuple: A tuple containing:
+            - PrivateEverlastingPredictor: The trained predictor instance.
+            - float: The final accuracy on the test set (or None if eval is False).
+            - float: The total epsilon privacy budget used.
+    """
+    from src.genericbbl.pytorch_wrapper import PyTorchCNNWrapper
+    from src.models.cifar_cnn import cifar_cnn
+    import time
+    import os
+    import json
+    import numpy as np
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    
+    # 1. Setup Predictor
+    start_time = time.time()
+    
+    X_initial = train_data["images"].float() / 255.0
+    y_initial = train_data["labels"].float()
+
+    predictor = PrivateEverlastingPredictor(
+        base_learner=PyTorchCNNWrapper(
+            model_class=cifar_cnn, epochs=epochs, batch_size=batch_size, lr=lr, device=str(device)),
+        vc_dim=40,
+        epsilon=epsilon,
+        delta=target_delta,
+        alpha=0.2,
+        beta=0.2,
+        practical_mode=True,
+        device=device,
+    )
+    # The wrapper expects numpy arrays, so we move to CPU first.
+    predictor.train_initial(X_initial.cpu().numpy(), y_initial.cpu().numpy())
+    
+    training_time = time.time() - start_time
+    
+    if not eval:
+        print(f"Training completed in {training_time:.2f} seconds.")
+        return predictor, None, epsilon
+
+    # 2. Evaluation
+    print("\n--- Starting Evaluation ---")
+    eval_start_time = time.time()
+    
+    X_test = test_data["images"].float() / 255.0
+    y_test = test_data["labels"]
+    
+    # The wrapper expects numpy arrays.
+    X_test_np = X_test.cpu().numpy()
+    y_test_np = y_test.cpu().numpy()
+    
+    all_preds = []
+    total_samples = len(X_test_np)
+    processed_samples = 0
+    
+    while processed_samples < total_samples:
+        print(f"\nStarting predictor round {predictor.round_counter}")
+        
+        predictor.prepare_for_simulation()
+        
+        queries_this_round = predictor.R_i
+        start_idx = processed_samples
+        end_idx = min(processed_samples + queries_this_round, total_samples)
+        
+        if start_idx >= end_idx:
+            print("No more samples to process for evaluation.")
+            break
+            
+        query_stream = X_test_np[start_idx:end_idx]
+        
+        round_preds = []
+        for i in range(0, len(query_stream), batch_size):
+            batch_X = query_stream[i:i+batch_size]
+            batch_preds = predictor.do_simulation(batch_X)
+            round_preds.extend(batch_preds)
+
+        all_preds.extend(round_preds)
+        processed_samples += len(round_preds)
+
+        print(f"Round {predictor.round_counter} completed. Processed {len(round_preds)} queries.")
+        
+        # predictor.finalize_round()
+
+        if not round_preds or len(round_preds) < len(query_stream):
+            print("Stopping evaluation as round ended early (budget exhausted or query limit).")
+            break
+
+    eval_runtime = time.time() - eval_start_time
+    total_runtime = time.time() - start_time
+    
+    y_true = y_test_np[:len(all_preds)]
+    accuracy = np.mean(np.array(all_preds) == y_true) if len(all_preds) > 0 else 0.0
+    print(f"\nEvaluation Complete. Accuracy: {accuracy:.4f}")
+
+    # 3. Save Metrics
+    metrics = {
+        "dataset": "CIFAR-10 binary",
+        "epochs_per_teacher": epochs,
+        "lr_teacher": lr,
+        "batch_size_eval": batch_size,
+        "epsilon_bbl": epsilon,
+        "delta_bbl": target_delta,
+        "accuracy": accuracy,
+        "total_runtime_sec": total_runtime,
+        "training_time_sec": training_time,
+        "evaluation_time_sec": eval_runtime,
+        "num_rounds_eval": predictor.round_counter - 1,
+        "num_samples_evaluated": len(all_preds),
+    }
+
+    os.makedirs(save_dir, exist_ok=True)
+    filename = "genericbbl_cifar10.json"
+    filepath = os.path.join(save_dir, filename)
+    json.dump(metrics, open(filepath, "w"), indent=4)
+    print(f"Saved metrics to {filepath}")
+
+    return predictor, accuracy, epsilon
