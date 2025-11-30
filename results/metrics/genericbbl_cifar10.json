@@ -1,0 +1,14 @@
+{
+    "dataset": "CIFAR-10 binary",
+    "epochs_per_teacher": 10,
+    "lr_teacher": 0.001,
+    "batch_size_eval": 128,
+    "epsilon_bbl": 75,
+    "delta_bbl": 1e-05,
+    "accuracy": 0.926,
+    "total_runtime_sec": 2.998722791671753,
+    "training_time_sec": 0.1654512882232666,
+    "evaluation_time_sec": 2.833263874053955,
+    "num_rounds_eval": 0,
+    "num_samples_evaluated": 2000
+}
