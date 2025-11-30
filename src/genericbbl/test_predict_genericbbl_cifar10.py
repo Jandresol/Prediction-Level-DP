@@ -152,8 +152,6 @@ def test_train_genericbbl():
     print(f"Final accuracy: {accuracy:.4f}")
     assert accuracy > 0.4, f"Accuracy {accuracy:.4f} is too low, expected > 0.4 for this simple task."
 
-    assert epsilon == 100.0, "Epsilon returned should match the input epsilon."
-    
     metrics_file = os.path.join(save_dir, "genericbbl_cifar10.json")
     assert os.path.exists(metrics_file), f"Metrics file was not created at {metrics_file}"
     

@@ -38,6 +38,8 @@ class PyTorchCNNWrapper(BaseEstimator, ClassifierMixin):
         return X_tensor
     
     def fit(self, X, y):
+        if X.ndim == 4:
+            X = X.reshape(X.shape[0], -1)
         X, y = check_X_y(X, y)
         self._setup_device()
         self.classes_ = unique_labels(y)
@@ -70,6 +72,8 @@ class PyTorchCNNWrapper(BaseEstimator, ClassifierMixin):
     
     def predict(self, X):
         check_is_fitted(self)
+        if X.ndim == 4:
+            X = X.reshape(X.shape[0], -1)
         X = check_array(X)
         
         self.model_.eval()
