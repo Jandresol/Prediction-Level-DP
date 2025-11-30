@@ -397,12 +397,11 @@ class PrivateEverlastingPredictor:
             outcome = bt.query(normalized_vote)
             
             # 3d.iii: Interpret outcome
-            if outcome == 'L':
+            if outcome == BetweenThresholds.OUTCOME_L:
                 pred = 0
-            elif outcome == 'R' or outcome == 'T':
+            elif outcome == BetweenThresholds.OUTCOME_R or outcome == BetweenThresholds.OUTCOME_T:
                 pred = 1
-            else:
-                # This happens if budget exhausted
+            else:  # This happens if budget exhausted (OUTCOME_HALT)
                 print("Privacy budget exhausted. Round halting.")
                 break
             
@@ -410,9 +409,6 @@ class PrivateEverlastingPredictor:
             D_i_X.append(x_query[0])
             D_i_y.append(pred)
             processed_count += 1
-            
-            if outcome == 'HALT':
-                break
 
         # --- Step 3f: LabelBoost and Next Round Prep ---
         if len(D_i_X) > 0:

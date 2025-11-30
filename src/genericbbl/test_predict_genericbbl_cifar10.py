@@ -137,10 +137,6 @@ def test_train_genericbbl():
     predictor, accuracy, epsilon = train_genericbbl(
         train_data=small_train_data,
         test_data=small_test_data,
-        epochs=1,
-        batch_size=64,
-        epsilon=75.0,
-        target_delta=1e-5,
         save_dir=save_dir,
         eval=True
     )
