@@ -90,6 +90,59 @@ class PrivateEverlastingPredictor:
 
         print(f"Initial training complete. Dataset size: {self.S_current_X.shape[0]} on device: {self.device}")
 
+    def eval(self):
+        """
+        Dummy method to be compatible with attack evaluation scripts, which expect a model
+        with an `eval()` method. The PrivateEverlastingPredictor does not have distinct
+        training/evaluation modes in the same way a single PyTorch model does.
+        """
+        # The base learner is cloned and fitted inside the training process, so
+        # setting the top-level base_learner to eval mode has no effect.
+        pass
+
+    def __call__(self, x):
+        """
+        Makes the predictor callable, returning a confidence score (normalized vote)
+        for a given input batch `x`. This is required for compatibility with attack scripts.
+        """
+        if not hasattr(self, 'F_i') or not self.F_i:
+            raise RuntimeError(
+                "Teacher models (F_i) are not trained. "
+                "Ensure `prepare_for_simulation()` is called after `train_initial()`."
+            )
+
+        # The PyTorchCNNWrapper expects a numpy array.
+        # The input `x` from the attack script is a torch tensor on the GPU.
+        x_np = x.cpu().numpy()
+
+        # Reshape if it's flat, for compatibility with CNN base learners
+        if len(x_np.shape) == 2 and x_np.shape[1] == 3072:
+             x_np = x_np.reshape(-1, 3, 32, 32)
+        
+        # This logic is adapted from `do_simulation` to get predictions from all teachers.
+        tasks = [(clf, x_np) for clf in self.F_i]
+        
+        all_preds = []
+        # Use the same parallel execution logic as do_simulation
+        if self.device.type == 'cuda':
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                all_preds = list(executor.map(_predict_single_model_parallel, tasks))
+        else:
+            num_workers = min(os.cpu_count(), len(tasks))
+            context = multiprocessing.get_context("spawn") if "spawn" in multiprocessing.get_all_start_methods() else None
+            with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers, mp_context=context) as executor:
+                all_preds = list(executor.map(_predict_single_model_parallel, tasks))
+
+        all_preds_np = np.array(all_preds)  # Shape: (T_i, batch_size)
+
+        # Calculate normalized votes, which serve as the confidence score
+        normalized_votes = np.sum(all_preds_np, axis=0) / self.T_i  # Shape: (batch_size,)
+
+        # Return as a torch tensor on the correct device, with shape (batch_size, 1)
+        return torch.from_numpy(normalized_votes).float().to(self.device).view(-1, 1)
+
+
+
     def run_round_without_privacy(self, query_stream):
         """
         Executes one round (i) of GenericBBL without privacy.
@@ -684,6 +737,10 @@ def train_genericbbl(
     
     if not eval:
         print(f"Training completed in {training_time:.2f} seconds.")
+        # When eval is False, it is likely being called from an attack script.
+        # We need to prepare the teacher models so the predictor can be called like a regular model.
+        print("Preparing teacher models for attack evaluation...")
+        predictor.prepare_for_simulation()
         return predictor, None, epsilon
 
     # 2. Evaluation
@@ -700,12 +757,11 @@ def train_genericbbl(
     all_preds = []
     total_samples = len(X_test_np)
     processed_samples = 0
-    
+    predictor.prepare_for_simulation()
+
     while processed_samples < total_samples:
         print(f"\nStarting predictor round {predictor.round_counter}")
-        
-        predictor.prepare_for_simulation()
-        
+
         queries_this_round = predictor.R_i
         start_idx = processed_samples
         end_idx = min(processed_samples + queries_this_round, total_samples)
