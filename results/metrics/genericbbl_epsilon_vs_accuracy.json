@@ -1,0 +1,18 @@
+[
+    {
+        "epsilon": 10.0,
+        "accuracy": 0.9
+    },
+    {
+        "epsilon": 50.0,
+        "accuracy": 0.8955
+    },
+    {
+        "epsilon": 75.0,
+        "accuracy": 0.8745
+    },
+    {
+        "epsilon": 500.0,
+        "accuracy": 0.879
+    }
+]
