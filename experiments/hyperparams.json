@@ -1,0 +1,47 @@
+{
+    "train_dp_sgd": [
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.25
+        },
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.3
+        },
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.4
+        },
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.5
+        }
+    ],
+    "train_genericbbl": [
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 40
+        },
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 90
+        },
+        {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 160
+        }
+    ],
+    "train_baseline": [
+        {
+            "epochs": 15,
+            "batch_size": 128
+        }
+    ]
+}
