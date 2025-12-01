@@ -14,7 +14,7 @@ from src.dpsgd.train_dp_sgd import train_dp_sgd
 
 def phi(x):
     x = torch.exp(-x)
-    assert x.min() > 0 and x.max() < 1, "x must be between 0 and 1"
+    assert x.min() >= 0 and x.max() <= 1, f"x must be between 0 and 1, but got min={x.min()} and max={x.max()}"
     return torch.log(x / (1 - x))
 
 

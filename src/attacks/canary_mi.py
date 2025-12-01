@@ -203,7 +203,18 @@ def lira_canary_attack(
     print(f"  Threshold: {threshold:.4f}")
     print(f"  TPR: {tpr:.4f}")
     
-    # Save results
+    # Compute full ROC curve data
+    thresholds = np.sort(np.concatenate([in_confidences, out_confidences]))[::-1]
+    fprs_list = []
+    tprs_list = []
+    
+    for thresh in thresholds[::max(1, len(thresholds)//1000)]:
+        fpr = np.mean(out_confidences >= thresh)
+        tpr_val = np.mean(in_confidences >= thresh)
+        fprs_list.append(float(fpr))
+        tprs_list.append(float(tpr_val))
+    
+    # Prepare results with ROC curve data (caller will save with unique filename)
     results = {
         "attack_type": "LIRA",
         "num_canaries": num_canaries,
@@ -213,21 +224,22 @@ def lira_canary_attack(
         "tpr": float(tpr),
         "num_in_samples": len(in_confidences),
         "num_out_samples": len(out_confidences),
-        "training_function": training_func.__name__
+        "training_function": training_func.__name__,
+        "roc_curve": {
+            "fprs": fprs_list,
+            "tprs": tprs_list
+        },
+        "confidences": {
+            "in": in_confidences.tolist(),
+            "out": out_confidences.tolist()
+        }
     }
     
-    output_dir = Path("results/canary_attacks")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    results_file = output_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.json"
-    with open(results_file, 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    print(f"\n✓ Results saved to: {results_file}")
-    
-    # Create visualization
+    # Create visualization (save to results for backward compatibility)
+    vis_dir = Path("results/canary_attacks")
+    vis_dir.mkdir(parents=True, exist_ok=True)
     create_roc_plot(in_confidences, out_confidences, target_fpr, tpr, 
-                   output_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.png",
+                   vis_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.png",
                    f"LIRA Canary Attack - {training_func.__name__}")
     
     return tpr, results
@@ -381,7 +393,18 @@ def label_only_canary_attack(
     print(f"  Threshold: {threshold:.4f}")
     print(f"  TPR: {tpr:.4f}")
     
-    # Save results
+    # Compute full ROC curve data
+    thresholds = np.sort(np.concatenate([in_confidences, out_confidences]))[::-1]
+    fprs_list = []
+    tprs_list = []
+    
+    for thresh in thresholds[::max(1, len(thresholds)//1000)]:
+        fpr = np.mean(out_confidences >= thresh)
+        tpr_val = np.mean(in_confidences >= thresh)
+        fprs_list.append(float(fpr))
+        tprs_list.append(float(tpr_val))
+    
+    # Prepare results with ROC curve data (caller will save with unique filename)
     results = {
         "attack_type": "Label-Only",
         "num_canaries": num_canaries,
@@ -391,21 +414,22 @@ def label_only_canary_attack(
         "tpr": float(tpr),
         "num_in_samples": len(in_confidences),
         "num_out_samples": len(out_confidences),
-        "training_function": training_func.__name__
+        "training_function": training_func.__name__,
+        "roc_curve": {
+            "fprs": fprs_list,
+            "tprs": tprs_list
+        },
+        "confidences": {
+            "in": in_confidences.tolist(),
+            "out": out_confidences.tolist()
+        }
     }
     
-    output_dir = Path("results/canary_attacks")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    
-    results_file = output_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.json"
-    with open(results_file, 'w') as f:
-        json.dump(results, f, indent=2)
-    
-    print(f"\n✓ Results saved to: {results_file}")
-    
-    # Create visualization
+    # Create visualization (save to results for backward compatibility)
+    vis_dir = Path("results/canary_attacks")
+    vis_dir.mkdir(parents=True, exist_ok=True)
     create_roc_plot(in_confidences, out_confidences, target_fpr, tpr,
-                   output_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.png",
+                   vis_dir / f"{output_prefix}_{training_func.__name__}_{number_of_models}models_fpr{target_fpr:.2f}.png",
                    f"Label-Only Canary Attack - {training_func.__name__}")
     
     return tpr, results

@@ -1,0 +1,46 @@
+[
+  {
+    "experiment_id": 1,
+    "hyperparameters": {
+      "epochs": 15,
+      "batch_size": 128,
+      "noise_multiplier": 0.25
+    },
+    "epsilon": 159.35614357856878,
+    "accuracy": 0.925,
+    "delta": 1e-05
+  },
+  {
+    "experiment_id": 2,
+    "hyperparameters": {
+      "epochs": 15,
+      "batch_size": 128,
+      "noise_multiplier": 0.3
+    },
+    "epsilon": 91.35703903917663,
+    "accuracy": 0.922,
+    "delta": 1e-05
+  },
+  {
+    "experiment_id": 3,
+    "hyperparameters": {
+      "epochs": 15,
+      "batch_size": 128,
+      "noise_multiplier": 0.4
+    },
+    "epsilon": 36.22874105074273,
+    "accuracy": 0.9135,
+    "delta": 1e-05
+  },
+  {
+    "experiment_id": 4,
+    "hyperparameters": {
+      "epochs": 15,
+      "batch_size": 128,
+      "noise_multiplier": 0.5
+    },
+    "epsilon": 17.532813107636702,
+    "accuracy": 0.883,
+    "delta": 1e-05
+  }
+]
