@@ -60,13 +60,14 @@ class PrivateEverlastingPredictor:
 
         # T_i: Number of disjoint databases/classifiers
         # Simplified theoretical scaling for implementation
-        T_numerator = tau * lambda_i * np.log(1/self.delta)
+        T_size_factor = np.log(lambda_i / (self.epsilon * alpha * beta * self.delta))
+        T_numerator = tau * lambda_i * np.log(1/self.delta) * T_size_factor * T_size_factor
         T_denominator = alpha * self.epsilon
         T_i = int(np.ceil(T_numerator / T_denominator))
         
         if self.practical_mode:
-            # Hard clamp for running on a laptop
-            T_i = max(5, int(T_i / 1e8)) 
+            # Hard clamp for running
+            T_i = max(2, int(T_i / 1e7)) 
             lambda_i = max(10, int(lambda_i / 10))
 
         # R_i: Number of queries to answer in this round
@@ -74,9 +75,6 @@ class PrivateEverlastingPredictor:
         size_S_i = T_i * lambda_i
         R_i = int((25600 * size_S_i) / self.epsilon)
         
-        if self.practical_mode:
-            R_i = min(1000, R_i) # Limit queries per round for demo
-
         return lambda_i, T_i, R_i
 
     def train_initial(self, X, y):
@@ -722,7 +720,7 @@ def train_genericbbl(
     predictor = PrivateEverlastingPredictor(
         base_learner=PyTorchCNNWrapper(
             model_class=cifar_cnn, epochs=epochs, batch_size=batch_size, lr=lr, device=str(device)),
-        vc_dim=40,
+        vc_dim=20,
         epsilon=epsilon,
         delta=target_delta,
         alpha=0.2,
