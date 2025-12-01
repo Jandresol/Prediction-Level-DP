@@ -17,7 +17,10 @@ def run_epsilon_accuracy_experiment():
     to measure the trade-off between privacy and utility (accuracy).
     """
     # Epsilon values to test, from more private to less private
-    epsilon_values = [75, 500, 4000, 1e8, 1e9]
+    # The value cannot be too large, otherwise the max query budget will be too small.
+    # The counterintuitive trend is probably because the alogorithm is designed for
+    # epsilons less than 1.
+    epsilon_values = [10, 50, 75, 500]
     results = []
 
     print("--- Loading CIFAR-10 binary dataset ---")
