@@ -1,0 +1,72 @@
+[
+    {
+        "algorithm": "dpsgd",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.25
+        },
+        "accuracy": 0.9185,
+        "final_epsilon": 159.35614361079453
+    },
+    {
+        "algorithm": "dpsgd",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.3
+        },
+        "accuracy": 0.9125,
+        "final_epsilon": 91.35703898538779
+    },
+    {
+        "algorithm": "dpsgd",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.4
+        },
+        "accuracy": 0.9095,
+        "final_epsilon": 36.22874105558641
+    },
+    {
+        "algorithm": "dpsgd",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "noise_multiplier": 0.5
+        },
+        "accuracy": 0.8895,
+        "final_epsilon": 17.532813100238673
+    },
+    {
+        "algorithm": "genericbbl",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 40
+        },
+        "accuracy": 0.9105,
+        "final_epsilon": 40
+    },
+    {
+        "algorithm": "genericbbl",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 90
+        },
+        "accuracy": 0.906,
+        "final_epsilon": 90
+    },
+    {
+        "algorithm": "genericbbl",
+        "hyperparameters": {
+            "epochs": 15,
+            "batch_size": 128,
+            "epsilon": 160
+        },
+        "accuracy": 0.878,
+        "final_epsilon": 160
+    }
+]
