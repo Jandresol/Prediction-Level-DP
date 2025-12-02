@@ -11,6 +11,8 @@ from src.datasets.load_cifar10 import load_torch_dataset
 from src.dpsgd.train_dp_sgd import train_dp_sgd
 from src.genericbbl.predict_genericbbl import train_genericbbl
 
+EVAL_BATCH_SIZE = 500
+
 
 def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
     """
@@ -48,7 +50,7 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
         print(f"Parameters: {params}")
         print("-" * 40)
 
-        _, accuracy, final_epsilon = train_dp_sgd(
+        _, accuracy, final_epsilon, training_time, inference_time = train_dp_sgd(
             train_data=train_data,
             test_data=test_data,
             epochs=params.get("epochs", 15),
@@ -58,7 +60,8 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
             lr=params.get("lr", 1e-3),
             max_grad_norm=params.get("max_grad_norm", 1.0),
             target_delta=params.get("target_delta", 1e-5),
-            eval=True
+            eval=True,
+            eval_batch_size=EVAL_BATCH_SIZE,
         )
 
         result = {
@@ -66,9 +69,11 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
             "hyperparameters": params,
             "accuracy": accuracy,
             "final_epsilon": final_epsilon,
+            "training_time": training_time,
+            "inference_time": inference_time
         }
         all_results.append(result)
-        print(f"✓ Accuracy: {accuracy:.4f} at ε={final_epsilon:.2f}")
+        print(f"✓ Accuracy: {accuracy:.4f} at ε={final_epsilon:.2f} (Training time: {training_time:.2f}s, Inference time: {inference_time:.4f}s)")
 
     # 2. Evaluate GenericBBL models
     print("\n" + "=" * 80)
@@ -81,7 +86,7 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
         print(f"Parameters: {params}")
         print("-" * 40)
 
-        _, accuracy, epsilon = train_genericbbl(
+        _, accuracy, epsilon, training_time, inference_time = train_genericbbl(
             train_data=train_data,
             test_data=test_data,
             epochs=params.get("epochs", 15),
@@ -90,7 +95,8 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
             # Use defaults from train_genericbbl if not in hyperparams
             lr=params.get("lr", 1e-3),
             target_delta=params.get("target_delta", 1e-5),
-            eval=True
+            eval=True,
+            eval_batch_size=EVAL_BATCH_SIZE,
         )
 
         result = {
@@ -98,9 +104,11 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
             "hyperparameters": params,
             "accuracy": accuracy,
             "final_epsilon": epsilon, # Target epsilon for BBL
+            "training_time": training_time,
+            "inference_time": inference_time
         }
         all_results.append(result)
-        print(f"✓ Accuracy: {accuracy:.4f} at ε={epsilon:.2f}")
+        print(f"✓ Accuracy: {accuracy:.4f} at ε={epsilon:.2f} (Training time: {training_time:.2f}s, Inference time: {inference_time:.2f}s)")
 
 
     # Save summary of all results
@@ -118,13 +126,16 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
 
     # Print summary table
     print("\n--- Summary of Accuracy Results ---")
-    print(f"{'Algorithm':<15} {'Parameters':<25} {'Accuracy':<15} {'Epsilon (ε)':<15}")
-    print("-" * 70)
+    header = f"{'Algorithm':<15} {'Parameters':<25} {'Accuracy':<15} {'Epsilon (ε)':<15} {'Training Time (s)':<20} {'Inference Time (s)':<20}"
+    print(header)
+    print("-" * len(header))
     for result in all_results:
         algo = result["algorithm"]
         acc = result["accuracy"]
         eps = result["final_epsilon"]
-        
+        train_time = result["training_time"]
+        infer_time = result["inference_time"]
+
         if algo == "dpsgd":
             param_str = f"noise={result['hyperparameters']['noise_multiplier']}"
         elif algo == "genericbbl":
@@ -132,8 +143,9 @@ def evaluate_all_accuracies(hyperparams_file="experiments/hyperparams.json"):
         else:
             param_str = "N/A"
         
-        print(f"{algo:<15} {param_str:<25} {acc:<15.4f} {eps:<15.2f}")
-    print("-" * 70)
+        infer_time_str = f"{infer_time:.2f}" if infer_time is not None else "N/A"
+        print(f"{algo:<15} {param_str:<25} {acc:<15.4f} {eps:<15.2f} {train_time:<20.2f} {infer_time_str:<20}")
+    print("-" * len(header))
 
     return all_results
 

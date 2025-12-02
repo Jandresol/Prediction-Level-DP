@@ -19,7 +19,8 @@ def train_dp_sgd(
     noise_multiplier=1.1,
     target_delta=1e-5,
     save_dir="./results/metrics",
-    eval=True
+    eval=True,
+    eval_batch_size=2000,
 ):
     # --------------------------
     # Process data
@@ -33,11 +34,14 @@ def train_dp_sgd(
     # --------------------------
     # Wrap into DataLoaders
     # --------------------------
+    if eval_batch_size is None:
+        eval_batch_size = batch_size
+        
     train_dataset = TensorDataset(X_train, y_train)
     test_dataset = TensorDataset(X_test, y_test)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=eval_batch_size, shuffle=False)
 
     # --------------------------
     # Model + DP setup
@@ -86,6 +90,7 @@ def train_dp_sgd(
     # Evaluation (optional)
     # --------------------------
     if eval:
+        inference_start = time.time()
         model.eval()
         correct = 0
         total = 0
@@ -98,6 +103,7 @@ def train_dp_sgd(
                 total += y.size(0)
 
         accuracy = correct / total
+        inference_time = time.time() - inference_start
 
         # --------------------------
         # Save metrics
@@ -113,15 +119,16 @@ def train_dp_sgd(
             "epsilon": final_epsilon,
             "accuracy": accuracy,
             "runtime_sec": runtime,
+            "inference_time_sec": inference_time
         }
 
         os.makedirs(save_dir, exist_ok=True)
         json.dump(metrics, open(os.path.join(save_dir, "dpsgd_cifar10.json"), "w"), indent=4)
         print(f"Saved metrics to {save_dir}/dpsgd_cifar10.json")
-        return model, accuracy, final_epsilon
+        return model, accuracy, final_epsilon, runtime, inference_time
     else:
         print(f"Training completed in {runtime:.2f} seconds with ε={final_epsilon:.2f} (evaluation skipped)")
-        return model, None, final_epsilon
+        return model, None, final_epsilon, runtime, None
 
 
 if __name__ == "__main__":

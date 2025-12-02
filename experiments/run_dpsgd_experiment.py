@@ -55,7 +55,7 @@ def run_dpsgd_experiments(hyperparams_file="experiments/hyperparams.json"):
         target_delta = params.get("target_delta", 1e-5)
         
         # Train model
-        model, accuracy, epsilon = train_dp_sgd(
+        model, accuracy, epsilon, training_time, inference_time = train_dp_sgd(
             train_data,
             test_data,
             epochs=epochs,

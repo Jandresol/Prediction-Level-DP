@@ -53,7 +53,7 @@ def run_epsilon_accuracy_experiment():
         
         # Each call to train_genericbbl will train and evaluate the model
         # for the given epsilon. We use parameters that proved effective in tests.
-        _, accuracy, final_epsilon = train_genericbbl(
+        _, accuracy, final_epsilon, _, _ = train_genericbbl(
             train_data=small_train_data,
             test_data=small_test_data,
             epochs=10,

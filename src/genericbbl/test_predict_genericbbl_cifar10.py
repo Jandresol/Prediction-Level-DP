@@ -134,7 +134,7 @@ def test_train_genericbbl():
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    predictor, accuracy, epsilon = train_genericbbl(
+    predictor, accuracy, epsilon, _, _ = train_genericbbl(
         train_data=small_train_data,
         test_data=small_test_data,
         save_dir=save_dir,

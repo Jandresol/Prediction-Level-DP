@@ -6,8 +6,10 @@
             "batch_size": 128,
             "noise_multiplier": 0.25
         },
-        "accuracy": 0.9185,
-        "final_epsilon": 159.35614361079453
+        "accuracy": 0.9245,
+        "final_epsilon": 159.35614361079453,
+        "training_time": 20.71145462989807,
+        "inference_time": 0.01742243766784668
     },
     {
         "algorithm": "dpsgd",
@@ -16,8 +18,10 @@
             "batch_size": 128,
             "noise_multiplier": 0.3
         },
-        "accuracy": 0.9125,
-        "final_epsilon": 91.35703898538779
+        "accuracy": 0.9275,
+        "final_epsilon": 91.35703898538779,
+        "training_time": 13.180097579956055,
+        "inference_time": 0.010227441787719727
     },
     {
         "algorithm": "dpsgd",
@@ -26,8 +30,10 @@
             "batch_size": 128,
             "noise_multiplier": 0.4
         },
-        "accuracy": 0.9095,
-        "final_epsilon": 36.22874105558641
+        "accuracy": 0.9015,
+        "final_epsilon": 36.22874105558641,
+        "training_time": 8.202501773834229,
+        "inference_time": 0.009502410888671875
     },
     {
         "algorithm": "dpsgd",
@@ -36,8 +42,10 @@
             "batch_size": 128,
             "noise_multiplier": 0.5
         },
-        "accuracy": 0.8895,
-        "final_epsilon": 17.532813100238673
+        "accuracy": 0.896,
+        "final_epsilon": 17.532813100238673,
+        "training_time": 7.258774042129517,
+        "inference_time": 0.009395599365234375
     },
     {
         "algorithm": "genericbbl",
@@ -46,8 +54,10 @@
             "batch_size": 128,
             "epsilon": 40
         },
-        "accuracy": 0.9105,
-        "final_epsilon": 40
+        "accuracy": 0.912,
+        "final_epsilon": 40,
+        "training_time": 0.0348668098449707,
+        "inference_time": 1.5625853538513184
     },
     {
         "algorithm": "genericbbl",
@@ -56,8 +66,10 @@
             "batch_size": 128,
             "epsilon": 90
         },
-        "accuracy": 0.906,
-        "final_epsilon": 90
+        "accuracy": 0.912,
+        "final_epsilon": 90,
+        "training_time": 0.03675484657287598,
+        "inference_time": 0.5916833877563477
     },
     {
         "algorithm": "genericbbl",
@@ -66,7 +78,9 @@
             "batch_size": 128,
             "epsilon": 160
         },
-        "accuracy": 0.878,
-        "final_epsilon": 160
+        "accuracy": 0.8845,
+        "final_epsilon": 160,
+        "training_time": 0.03625321388244629,
+        "inference_time": 0.30235910415649414
     }
 ]

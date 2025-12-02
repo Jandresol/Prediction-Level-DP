@@ -661,7 +661,8 @@ def train_genericbbl(
     epsilon=75,
     target_delta=1e-5,
     save_dir="./results/metrics",
-    eval=True
+    eval=True,
+    eval_batch_size=2000,
 ):
     """
     Initializes and evaluates the GenericBBL private everlasting predictor.
@@ -739,7 +740,7 @@ def train_genericbbl(
         # We need to prepare the teacher models so the predictor can be called like a regular model.
         print("Preparing teacher models for attack evaluation...")
         predictor.prepare_for_simulation()
-        return predictor, None, epsilon
+        return predictor, None, epsilon, training_time, None
 
     # 2. Evaluation
     print("\n--- Starting Evaluation ---")
@@ -771,8 +772,8 @@ def train_genericbbl(
         query_stream = X_test_np[start_idx:end_idx]
         
         round_preds = []
-        for i in range(0, len(query_stream), batch_size):
-            batch_X = query_stream[i:i+batch_size]
+        for i in range(0, len(query_stream), eval_batch_size):
+            batch_X = query_stream[i:i+eval_batch_size]
             batch_preds = predictor.do_simulation(batch_X)
             round_preds.extend(batch_preds)
 
@@ -816,4 +817,4 @@ def train_genericbbl(
     json.dump(metrics, open(filepath, "w"), indent=4)
     print(f"Saved metrics to {filepath}")
 
-    return predictor, accuracy, epsilon
+    return predictor, accuracy, epsilon, training_time, eval_runtime
